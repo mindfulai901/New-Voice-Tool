@@ -19,11 +19,33 @@ import { Step3_ModelSelection } from './components/steps/Step3_ModelSelection';
 import { Step4_VoiceSelection } from './components/steps/Step4_VoiceSelection';
 import { Step5_Generation } from './components/steps/Step5_Generation';
 import { Step6_Output } from './components/steps/Step6_Output';
-
-// A fixed ID for the single row in our user_preferences table
-const USER_PREFERENCES_ID = 1;
+import { useAuth } from './components/auth/AuthProvider';
+import { LandingPage } from './components/LandingPage';
+import { Spinner } from './components/common/Spinner';
+// FIX: Add missing import for Button component
+import { Button } from './components/common/Button';
 
 const App: React.FC = () => {
+  const { session, user, loading: authLoading } = useAuth();
+
+  if (authLoading) {
+    return (
+        <div className="min-h-screen text-white flex flex-col items-center justify-center p-4 bg-[#0E1117]">
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-blue-500 text-transparent bg-clip-text mb-4">
+              VoiceGen Pro
+            </h1>
+            <div className="flex items-center space-x-3">
+                <Spinner />
+                <p className="text-gray-400 text-lg">Loading Session...</p>
+            </div>
+        </div>
+      );
+  }
+
+  if (!session || !user) {
+    return <LandingPage />;
+  }
+  
   if (!supabase) {
     return (
       <div className="min-h-screen text-white flex flex-col items-center justify-center p-4 bg-[#0E1117]">
@@ -36,13 +58,18 @@ const App: React.FC = () => {
           <h2 className="text-xl font-semibold text-red-300">Could not connect to the backend.</h2>
           <p className="text-red-400 mt-2">{supabaseError || 'An unknown initialization error occurred.'}</p>
           <p className="text-gray-400 mt-4 text-sm">
-            Please ensure you have a <code>.env.local</code> file with the correct Supabase credentials (<code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>), or that you have configured the environment variables on your hosting platform (e.g., Vercel).
+            Please ensure you have a <code>.env.local</code> file with the correct Supabase credentials (<code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>), or that you have configured the environment variables on your hosting platform.
           </p>
         </div>
       </div>
     );
   }
 
+  return <MainApp userId={user.id} />;
+};
+
+const MainApp: React.FC<{userId: string}> = ({ userId }) => {
+  const { signOut } = useAuth();
   const [currentStep, setCurrentStep] = useState<AppStep>(AppStep.InputType);
   const [inputMode, setInputMode] = useState<InputMode>(null);
   const [scripts, setScripts] = useState<Script[]>([]);
@@ -73,22 +100,17 @@ const App: React.FC = () => {
   // Fetch initial state from Supabase
   useEffect(() => {
     const fetchInitialData = async () => {
+      if (!userId) return;
       // Fetch user preferences
       const { data: prefs, error: prefsError } = await supabase
         .from('user_preferences')
         .select('*')
-        .eq('id', USER_PREFERENCES_ID)
+        .eq('user_id', userId)
         .single();
 
-      if (prefsError) {
+      if (prefsError && prefsError.code !== 'PGRST116') { // Ignore 'range not found' error for new users
         console.error('Error fetching user preferences:', prefsError);
-        if (prefsError.message.toLowerCase().includes('fetch')) {
-            setError('Network Error: Could not connect to the database. Please verify your VITE_SUPABASE_URL in your environment variables and check your network connection.');
-        } else if (prefsError.message.toLowerCase().includes('rls')) {
-            setError('Permission Denied: Could not access database. Please check your Supabase Row Level Security policies.');
-        } else {
-            setError(`Database Error: ${prefsError.message}`);
-        }
+        setError(`Database Error: ${prefsError.message}`);
       } else if (prefs) {
         setParagraphsPerChunk(prefs.paragraphs_per_chunk || 2);
         setSelectedModelId(prefs.selected_model_id);
@@ -99,9 +121,10 @@ const App: React.FC = () => {
       // Fetch saved voices
       const { data: voices, error: voicesError } = await supabase
         .from('voices')
-        .select('id:voice_id, name');
+        .select('id:voice_id, name')
+        .eq('user_id', userId);
 
-      if (voicesError && !error) { // Only set error if not already set by a more critical error
+      if (voicesError && !error) { 
         console.error('Error fetching voices:', voicesError);
         setError('Could not load saved voices from the database.');
       } else if (voices) {
@@ -112,7 +135,7 @@ const App: React.FC = () => {
     };
 
     fetchInitialData();
-  }, [error]);
+  }, [userId, error]);
 
   // Fetch models from ElevenLabs via our serverless function
   useEffect(() => {
@@ -137,21 +160,16 @@ const App: React.FC = () => {
 
   // Persist settings changes to Supabase
   const updatePreference = useCallback(async (updates: Partial<{ [key: string]: any }>) => {
+      if (!userId) return;
       const { error: dbError } = await supabase
           .from('user_preferences')
-          .upsert({ id: USER_PREFERENCES_ID, ...updates, updated_at: new Date().toISOString() });
+          .upsert({ user_id: userId, ...updates, updated_at: new Date().toISOString() });
 
       if (dbError) {
           console.error(`Failed to upsert preference:`, dbError);
-          let friendlyError = `Failed to save settings: ${dbError.message}`;
-          if (dbError.message.toLowerCase().includes('fetch')) {
-              friendlyError = 'Network Error: Could not save settings to the database. Please check your connection and Supabase URL.';
-          } else if (dbError.message.toLowerCase().includes('rls')) {
-              friendlyError = 'Permission Denied: Could not save settings. Please check your database Row Level Security policies.';
-          }
-          setError(friendlyError);
+          setError(`Failed to save settings: ${dbError.message}`);
       }
-  }, []);
+  }, [userId]);
 
   const handleSettingsUpdate = useCallback((newSettingsForCurrentModel: VoiceSettingsValues) => {
     if (!selectedModelId) return;
@@ -177,8 +195,8 @@ const App: React.FC = () => {
   };
 
   const handleStartGeneration = useCallback(async () => {
-    if (!scripts.length || !selectedVoiceId || !selectedModelId) {
-        setError("Cannot start generation: Missing scripts, voice ID, or model ID.");
+    if (!scripts.length || !selectedVoiceId || !selectedModelId || !userId) {
+        setError("Cannot start generation: Missing scripts, voice ID, model ID, or user session.");
         return;
     };
     
@@ -224,12 +242,12 @@ const App: React.FC = () => {
       if (!generationFailed && audioBlobs.length === chunks.length) {
         try {
             const stitchedBlob = new Blob(audioBlobs, { type: 'audio/mpeg' });
-            const fileName = `${script.id}_${Date.now()}.mp3`;
+            const filePath = `${userId}/${script.id}_${Date.now()}.mp3`;
 
             // Upload to Supabase Storage
             const { data: uploadData, error: uploadError } = await supabase.storage
                 .from('audio_files')
-                .upload(fileName, stitchedBlob);
+                .upload(filePath, stitchedBlob);
 
             if (uploadError) throw uploadError;
 
@@ -243,7 +261,7 @@ const App: React.FC = () => {
             // Save to generated_audio table
             const { error: dbError } = await supabase
               .from('generated_audio')
-              .insert({ script_name: script.name, audio_url: publicUrl, script_id: script.id });
+              .insert({ script_name: script.name, audio_url: publicUrl, script_id: script.id, user_id: userId });
 
             if (dbError) throw dbError;
 
@@ -257,7 +275,7 @@ const App: React.FC = () => {
         }
       }
     }
-  }, [scripts, selectedVoiceId, paragraphsPerChunk, selectedModelId, currentVoiceSettings, supabase]);
+  }, [scripts, selectedVoiceId, paragraphsPerChunk, selectedModelId, currentVoiceSettings, userId, supabase]);
 
   if (isInitialLoad) {
       return (
@@ -266,8 +284,8 @@ const App: React.FC = () => {
               VoiceGen Pro
             </h1>
             <div className="flex items-center space-x-3">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
-                <p className="text-gray-400 text-lg">Connecting to backend...</p>
+                <Spinner />
+                <p className="text-gray-400 text-lg">Loading your workspace...</p>
             </div>
         </div>
       );
@@ -279,11 +297,11 @@ const App: React.FC = () => {
       case AppStep.InputType:
         return <Step1_InputType setInputMode={setInputMode} onNext={handleNext} />;
       case AppStep.Configuration:
-        return <Step2_Configuration inputMode={inputMode} setScripts={setScripts} paragraphsPerChunk={paragraphsPerChunk} setParagraphsPerChunk={(val) => { setParagraphsPerChunk(val); updatePreference({ paragraphs_per_chunk: val }); }} onNext={handleNext} onBack={handleBack} />;
+        return <Step2_Configuration inputMode={inputMode} setScripts={setScripts} paragraphsPerChunk={paragraphsPerChunk} setParagraphsPerChunk={(val) => { setParagraphsPerChunk(val); updatePreference({ paragraphs_per_chunk: val }); }} onNext={handleNext} onBack={handleBack} userId={userId} />;
       case AppStep.ModelSelection:
         return <Step3_ModelSelection models={models} selectedModelId={selectedModelId} setSelectedModelId={(id) => { setSelectedModelId(id); updatePreference({ selected_model_id: id }); }} onNext={handleNext} onBack={handleBack} isLoading={isModelsLoading} />;
       case AppStep.VoiceSelection:
-        return <Step4_VoiceSelection savedVoices={savedVoices} setSavedVoices={setSavedVoices} selectedVoiceId={selectedVoiceId} setSelectedVoiceId={(id) => { setSelectedVoiceId(id); updatePreference({ selected_voice_id: id }); }} voiceSettings={currentVoiceSettings} setVoiceSettings={handleSettingsUpdate} model={selectedModel} onNext={handleStartGeneration} onBack={handleBack} />;
+        return <Step4_VoiceSelection userId={userId} savedVoices={savedVoices} setSavedVoices={setSavedVoices} selectedVoiceId={selectedVoiceId} setSelectedVoiceId={(id) => { setSelectedVoiceId(id); updatePreference({ selected_voice_id: id }); }} voiceSettings={currentVoiceSettings} setVoiceSettings={handleSettingsUpdate} model={selectedModel} onNext={handleStartGeneration} onBack={handleBack} />;
       case AppStep.Generation:
         return <Step5_Generation progress={generationProgress} onComplete={() => setCurrentStep(AppStep.Output)} />;
       case AppStep.Output:
@@ -297,10 +315,16 @@ const App: React.FC = () => {
     <div className="min-h-screen text-white flex flex-col items-center justify-start p-4 sm:p-8 bg-[#0E1117]">
       <div className="w-full max-w-5xl mx-auto">
         <header className="text-center mb-8 relative">
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-blue-500 text-transparent bg-clip-text">
-            VoiceGen Pro
-          </h1>
-          <p className="text-gray-400 mt-2 text-lg">High-Quality Voiceovers, Simplified.</p>
+          <div className="flex justify-between items-center">
+            <div></div>
+            <div className="flex-grow text-center">
+              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-blue-500 text-transparent bg-clip-text">
+                VoiceGen Pro
+              </h1>
+              <p className="text-gray-400 mt-2 text-lg">High-Quality Voiceovers, Simplified.</p>
+            </div>
+            <Button variant="secondary" onClick={signOut} className="!px-4 !py-2">Logout</Button>
+          </div>
            {error && (
             <div className="mt-4 p-3 bg-red-500/20 border border-red-500 text-red-300 rounded-lg animate-fade-in flex justify-between items-center">
               <span>{error}</span>
@@ -320,6 +344,6 @@ const App: React.FC = () => {
       </div>
     </div>
   );
-};
+}
 
 export default App;

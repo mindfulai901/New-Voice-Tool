@@ -11,13 +11,14 @@ interface Step2Props {
   setParagraphsPerChunk: (value: number) => void;
   onNext: () => void;
   onBack: () => void;
+  userId: string;
 }
 
-export const Step2_Configuration: React.FC<Step2Props> = ({ inputMode, setScripts, paragraphsPerChunk, setParagraphsPerChunk, onNext, onBack }) => {
+export const Step2_Configuration: React.FC<Step2Props> = ({ inputMode, setScripts, paragraphsPerChunk, setParagraphsPerChunk, onNext, onBack, userId }) => {
   const [singleScript, setSingleScript] = useState('');
   const [fileNames, setFileNames] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [tempScripts, setTempScripts] = useState<Omit<Script, 'id'>[]>([]);
+  const [tempScripts, setTempScripts] = useState<Omit<Script, 'id' | 'user_id'>[]>([]);
 
   const handleFileChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,16 +30,14 @@ export const Step2_Configuration: React.FC<Step2Props> = ({ inputMode, setScript
       };
 
       setError(null);
-      // FIX: Explicitly type `f` as File to access its 'name' property.
       setFileNames(Array.from(files).map((f: File) => f.name));
 
-      // FIX: Explicitly type `file` as File to access its properties and pass to reader.
-      const fileReadPromises: Promise<Omit<Script, 'id'>[]>[] = Array.from(files).map((file: File) => {
+      const fileReadPromises: Promise<Omit<Script, 'id' | 'user_id'>[]>[] = Array.from(files).map((file: File) => {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = (e) => {
             const content = e.target?.result as string;
-            const scriptsFromFile: Omit<Script, 'id'>[] = [];
+            const scriptsFromFile: Omit<Script, 'id' | 'user_id'>[] = [];
             
             if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
               const lines = content.split('\n').filter(line => line.trim() !== '');
@@ -78,21 +77,28 @@ export const Step2_Configuration: React.FC<Step2Props> = ({ inputMode, setScript
 
   const handleSubmit = async () => {
     setError(null);
-    let scriptsToUpload: Omit<Script, 'id'>[] = [];
+    if (!userId) {
+        setError("User not logged in. Please refresh the page.");
+        return;
+    }
+    let scriptsToProcess: Omit<Script, 'id' | 'user_id'>[] = [];
 
     if (inputMode === 'single') {
       if (!singleScript.trim()) {
         setError('Script content cannot be empty.');
         return;
       }
-      scriptsToUpload = [{ name: 'My Script', content: singleScript.trim() }];
+      scriptsToProcess = [{ name: 'My Script', content: singleScript.trim() }];
     } else {
       if (tempScripts.length === 0) {
         setError('Please upload and process at least one file.');
         return;
       }
-      scriptsToUpload = tempScripts;
+      scriptsToProcess = tempScripts;
     }
+
+    // Add user_id to each script before upload
+    const scriptsToUpload = scriptsToProcess.map(s => ({...s, user_id: userId }));
 
     // Insert scripts into Supabase
     const { data, error: dbError } = await supabase.from('scripts').insert(scriptsToUpload).select();

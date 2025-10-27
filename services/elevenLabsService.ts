@@ -1,5 +1,4 @@
-import type { ElevenLabsModel, VoiceSetting, Voice, VoiceSettingsValues, ElevenLabsVoice } from '../types';
-import { publicVoices } from '../data/elevenLabsPublicVoices';
+import type { ElevenLabsModel, VoiceSetting, Voice, VoiceSettingsValues } from '../types';
 
 // --- PROXY API FUNCTIONS ---
 
@@ -39,12 +38,6 @@ async function fetchApi(url: string, options?: RequestInit): Promise<Response> {
 export const getModels = async (): Promise<ElevenLabsModel[]> => {
   const response = await fetchApi('/api/get-models');
   return response.json();
-};
-
-export const getAllVoices = async (): Promise<ElevenLabsVoice[]> => {
-  // Return the curated list of public voices from the local data file.
-  // This is faster and more reliable than calling the API for a static list.
-  return Promise.resolve(publicVoices);
 };
 
 export const getVoice = async (voiceId: string): Promise<Voice> => {
