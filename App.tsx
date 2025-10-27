@@ -8,6 +8,7 @@ import {
   VoiceSettingsValues,
   GenerationProgress,
   FinalAudio,
+  AllVoiceSettings,
 } from './types';
 import { supabase, supabaseError } from './services/supabaseClient';
 import { getModels, generateVoiceoverChunk } from './services/elevenLabsService';
@@ -51,7 +52,7 @@ const App: React.FC = () => {
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const [savedVoices, setSavedVoices] = useState<Voice[]>([]);
   const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(null);
-  const [voiceSettings, setVoiceSettings] = useState<VoiceSettingsValues>({});
+  const [allVoiceSettings, setAllVoiceSettings] = useState<AllVoiceSettings>({});
 
   // App State
   const [models, setModels] = useState<ElevenLabsModel[]>([]);
@@ -62,6 +63,12 @@ const App: React.FC = () => {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const selectedModel = useMemo(() => models.find(m => m.model_id === selectedModelId), [models, selectedModelId]);
+
+  // Derived state for the current model's voice settings
+  const currentVoiceSettings = useMemo(() => {
+    if (!selectedModelId) return {};
+    return allVoiceSettings[selectedModelId] || {};
+  }, [allVoiceSettings, selectedModelId]);
 
   // Fetch initial state from Supabase
   useEffect(() => {
@@ -86,7 +93,7 @@ const App: React.FC = () => {
         setParagraphsPerChunk(prefs.paragraphs_per_chunk || 2);
         setSelectedModelId(prefs.selected_model_id);
         setSelectedVoiceId(prefs.selected_voice_id);
-        setVoiceSettings(prefs.voice_settings || {});
+        setAllVoiceSettings(prefs.voice_settings || {});
       }
 
       // Fetch saved voices
@@ -139,10 +146,22 @@ const App: React.FC = () => {
           let friendlyError = `Failed to save settings: ${dbError.message}`;
           if (dbError.message.toLowerCase().includes('fetch')) {
               friendlyError = 'Network Error: Could not save settings to the database. Please check your connection and Supabase URL.';
+          } else if (dbError.message.toLowerCase().includes('rls')) {
+              friendlyError = 'Permission Denied: Could not save settings. Please check your database Row Level Security policies.';
           }
           setError(friendlyError);
       }
   }, []);
+
+  const handleSettingsUpdate = useCallback((newSettingsForCurrentModel: VoiceSettingsValues) => {
+    if (!selectedModelId) return;
+    const newAllSettings = {
+      ...allVoiceSettings,
+      [selectedModelId]: newSettingsForCurrentModel,
+    };
+    setAllVoiceSettings(newAllSettings);
+    updatePreference({ voice_settings: newAllSettings });
+  }, [selectedModelId, allVoiceSettings, updatePreference]);
 
 
   const handleNext = () => setCurrentStep(prev => Math.min(prev + 1, 6));
@@ -189,7 +208,7 @@ const App: React.FC = () => {
       let generationFailed = false;
       for (let i = 0; i < chunks.length; i++) {
         try {
-          const blob = await generateVoiceoverChunk(chunks[i], selectedVoiceId, selectedModelId, voiceSettings);
+          const blob = await generateVoiceoverChunk(chunks[i], selectedVoiceId, selectedModelId, currentVoiceSettings);
           audioBlobs.push(blob);
           setGenerationProgress(prev => prev.map(p => p.scriptId === script.id ? { ...p, completedChunks: i + 1 } : p));
         } catch (error) {
@@ -238,7 +257,7 @@ const App: React.FC = () => {
         }
       }
     }
-  }, [scripts, selectedVoiceId, paragraphsPerChunk, selectedModelId, voiceSettings, supabase]);
+  }, [scripts, selectedVoiceId, paragraphsPerChunk, selectedModelId, currentVoiceSettings, supabase]);
 
   if (isInitialLoad) {
       return (
@@ -264,7 +283,7 @@ const App: React.FC = () => {
       case AppStep.ModelSelection:
         return <Step3_ModelSelection models={models} selectedModelId={selectedModelId} setSelectedModelId={(id) => { setSelectedModelId(id); updatePreference({ selected_model_id: id }); }} onNext={handleNext} onBack={handleBack} isLoading={isModelsLoading} />;
       case AppStep.VoiceSelection:
-        return <Step4_VoiceSelection savedVoices={savedVoices} setSavedVoices={setSavedVoices} selectedVoiceId={selectedVoiceId} setSelectedVoiceId={(id) => { setSelectedVoiceId(id); updatePreference({ selected_voice_id: id }); }} voiceSettings={voiceSettings} setVoiceSettings={(settings) => { setVoiceSettings(settings); updatePreference({ voice_settings: settings }); }} model={selectedModel} onNext={handleStartGeneration} onBack={handleBack} />;
+        return <Step4_VoiceSelection savedVoices={savedVoices} setSavedVoices={setSavedVoices} selectedVoiceId={selectedVoiceId} setSelectedVoiceId={(id) => { setSelectedVoiceId(id); updatePreference({ selected_voice_id: id }); }} voiceSettings={currentVoiceSettings} setVoiceSettings={handleSettingsUpdate} model={selectedModel} onNext={handleStartGeneration} onBack={handleBack} />;
       case AppStep.Generation:
         return <Step5_Generation progress={generationProgress} onComplete={() => setCurrentStep(AppStep.Output)} />;
       case AppStep.Output:

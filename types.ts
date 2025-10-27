@@ -50,6 +50,11 @@ export type VoiceSettingsValues = {
   [key: string]: number | string;
 };
 
+// New type to store voice settings for all models
+export type AllVoiceSettings = {
+  [modelId: string]: VoiceSettingsValues;
+};
+
 export interface GenerationProgress {
   scriptId: string;
   scriptName: string;

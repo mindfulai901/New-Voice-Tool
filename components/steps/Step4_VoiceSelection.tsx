@@ -14,7 +14,7 @@ interface Step4Props {
   selectedVoiceId: string | null;
   setSelectedVoiceId: (id: string | null) => void;
   voiceSettings: VoiceSettingsValues;
-  setVoiceSettings: React.Dispatch<React.SetStateAction<VoiceSettingsValues>>;
+  setVoiceSettings: (settings: VoiceSettingsValues) => void;
   model: ElevenLabsModel | undefined;
   onNext: () => void;
   onBack: () => void;
@@ -33,33 +33,45 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ savedVoices, setSav
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const fetchSettings = useCallback(async () => {
-    if (model) {
-      setIsLoadingSettings(true);
-      const settings = await getVoiceSettingsForModel(model.model_id);
-      setModelVoiceSettings(settings);
-      
-      setVoiceSettings(prevSettings => {
-        const newSettings = { ...prevSettings };
-        settings.forEach(s => {
-          if (newSettings[s.id] === undefined) {
-            newSettings[s.id] = s.defaultValue;
-          }
-        });
-        return newSettings;
-      });
-      
-      setIsLoadingSettings(false);
-    }
-  }, [model, setVoiceSettings]);
-  
+  // This effect fetches the settings schema for the current model and initializes
+  // the state by merging existing values with defaults.
   useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
+    const fetchAndInitializeSettings = async () => {
+      if (model) {
+        setIsLoadingSettings(true);
+        try {
+          const settingsSchema = await getVoiceSettingsForModel(model.model_id);
+          setModelVoiceSettings(settingsSchema);
+          
+          const newSettingsForCurrentModel = { ...voiceSettings };
+          let needsUpdate = false;
+          settingsSchema.forEach(s => {
+            if (newSettingsForCurrentModel[s.id] === undefined) {
+              newSettingsForCurrentModel[s.id] = s.defaultValue;
+              needsUpdate = true;
+            }
+          });
+
+          // If we added default values, persist them
+          if(needsUpdate) {
+            setVoiceSettings(newSettingsForCurrentModel);
+          }
+
+        } catch (err) {
+          handleError(err);
+        } finally {
+          setIsLoadingSettings(false);
+        }
+      }
+    };
+    fetchAndInitializeSettings();
+  // voiceSettings is included to re-evaluate if it changes from parent
+  }, [model, setVoiceSettings, voiceSettings]);
 
   const stopCurrentPreview = useCallback(() => {
     if (audioRef.current) {
         audioRef.current.pause();
+        audioRef.current.src = '';
     }
     audioRef.current = null;
     setIsPlaying(false);
@@ -126,7 +138,8 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ savedVoices, setSav
   };
   
   const handleSettingChange = (id: string, value: string | number) => {
-    setVoiceSettings(prev => ({...prev, [id]: value}));
+    const newSettings = { ...voiceSettings, [id]: value };
+    setVoiceSettings(newSettings);
   };
   
   const handlePreview = async () => {
