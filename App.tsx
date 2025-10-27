@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   AppStep,
@@ -141,7 +142,7 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
     } finally {
         setIsHistoryLoading(false);
     }
-  }, [userId, supabase]);
+  }, [userId]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -260,7 +261,7 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
   };
 
   const handleStartGeneration = useCallback(async () => {
-    if (!scripts.length || !selectedVoiceId || !selectedModelId || !userId) {
+    if (!scripts.length || !selectedVoiceId || !selectedModelId || !userId || !supabase) {
         setError("Cannot start generation: Missing scripts, voice ID, model ID, or user session.");
         return;
     };
@@ -281,26 +282,54 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
       
       setGenerationProgress(prev => prev.map(p => p.scriptId === script.id ? { ...p, totalChunks: chunks.length } : p));
 
-      const audioBlobs: Blob[] = [];
+      const allAudioBlobs: Blob[] = [];
       let generationFailed = false;
-      for (let i = 0; i < chunks.length; i++) {
-        try {
-          const blob = await generateVoiceoverChunk(chunks[i], selectedVoiceId, selectedModelId, currentVoiceSettings);
-          audioBlobs.push(blob);
-          setGenerationProgress(prev => prev.map(p => p.scriptId === script.id ? { ...p, completedChunks: i + 1 } : p));
-        } catch (error) {
-          const errorMessage = `Generation failed for "${script.name}": ${error instanceof Error ? error.message : 'An unknown generation error occurred.'}`;
-          console.error(errorMessage, error);
-          setError(errorMessage);
-          setGenerationProgress(prev => prev.map(p => p.scriptId === script.id ? { ...p, status: 'failed' } : p));
-          generationFailed = true;
-          break;
+      const BATCH_SIZE = 5;
+
+      for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
+        const batchChunks = chunks.slice(i, i + BATCH_SIZE);
+        
+        const promises = batchChunks.map(chunk => 
+          generateVoiceoverChunk(chunk, selectedVoiceId, selectedModelId, currentVoiceSettings)
+        );
+        
+        const results = await Promise.allSettled(promises);
+
+        const successfulBlobs: Blob[] = [];
+        const batchErrors: string[] = [];
+
+        results.forEach(result => {
+          if (result.status === 'fulfilled') {
+            successfulBlobs.push(result.value);
+          } else {
+            batchErrors.push(result.reason instanceof Error ? result.reason.message : String(result.reason));
+          }
+        });
+        
+        if (batchErrors.length > 0) {
+            const errorMessage = `Generation failed for "${script.name}": ${batchErrors.join(', ')}`;
+            console.error(errorMessage);
+            setError(errorMessage);
+            setGenerationProgress(prev => prev.map(p => p.scriptId === script.id ? { ...p, status: 'failed' } : p));
+            generationFailed = true;
+            break; 
         }
+
+        allAudioBlobs.push(...successfulBlobs);
+        
+        const currentCompletedCount = allAudioBlobs.length;
+        setGenerationProgress(prev => 
+          prev.map(p => 
+            p.scriptId === script.id 
+              ? { ...p, completedChunks: currentCompletedCount } 
+              : p
+          )
+        );
       }
       
-      if (!generationFailed && audioBlobs.length === chunks.length) {
+      if (!generationFailed && allAudioBlobs.length === chunks.length) {
         try {
-            const stitchedBlob = new Blob(audioBlobs, { type: 'audio/mpeg' });
+            const stitchedBlob = new Blob(allAudioBlobs, { type: 'audio/mpeg' });
             const filePath = `${userId}/${script.id}_${Date.now()}.mp3`;
 
             const { data: uploadData, error: uploadError } = await supabase.storage.from('audio_files').upload(filePath, stitchedBlob);
