@@ -9,6 +9,8 @@ export const Auth: React.FC = () => {
   const [view, setView] = useState<AuthView>('signIn');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -27,7 +29,16 @@ export const Auth: React.FC = () => {
 
     try {
       if (view === 'signUp') {
-        const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+        const { data, error: signUpError } = await supabase.auth.signUp({ 
+            email, 
+            password,
+            options: {
+                data: {
+                    first_name: firstName.trim(),
+                    last_name: lastName.trim(),
+                }
+            }
+        });
         if (signUpError) throw signUpError;
         
         // If the user object is returned and the email is already confirmed,
@@ -102,7 +113,7 @@ export const Auth: React.FC = () => {
     <div className="w-full">
       <div className="flex border-b border-gray-700 mb-6">
         <button
-          onClick={() => { setView('signIn'); setMessage(''); setError(''); }}
+          onClick={() => { setView('signIn'); setMessage(''); setError(''); setFirstName(''); setLastName(''); }}
           className={`px-4 py-2 w-1/2 font-semibold transition-colors ${view === 'signIn' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-white'}`}
         >
           Sign In
@@ -119,6 +130,34 @@ export const Auth: React.FC = () => {
       <p className="text-gray-400 text-center mb-6">{view === 'signUp' ? 'Get started with your free account.' : 'Sign in to continue.'}</p>
       
       <form onSubmit={handleAuth} className="space-y-4">
+        {view === 'signUp' && (
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <label htmlFor="firstName" className="text-sm font-medium text-gray-300 block mb-2">First Name</label>
+              <input
+                id="firstName"
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+                className="w-full p-3 bg-[#0E1117] border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                placeholder="Jane"
+              />
+            </div>
+            <div className="flex-1">
+              <label htmlFor="lastName" className="text-sm font-medium text-gray-300 block mb-2">Last Name</label>
+              <input
+                id="lastName"
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+                className="w-full p-3 bg-[#0E1117] border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                placeholder="Doe"
+              />
+            </div>
+          </div>
+        )}
         <div>
           <label htmlFor="email" className="text-sm font-medium text-gray-300 block mb-2">Email</label>
           <input
