@@ -75,7 +75,7 @@ const App: React.FC = () => {
 
       if (prefsError) {
         console.error('Error fetching user preferences:', prefsError);
-        setError('Could not load user preferences from the database.');
+        // Don't set a fatal error, the app can proceed with defaults
       } else if (prefs) {
         setParagraphsPerChunk(prefs.paragraphs_per_chunk || 2);
         setSelectedModelId(prefs.selected_model_id);
@@ -124,11 +124,16 @@ const App: React.FC = () => {
 
   // Persist settings changes to Supabase
   const updatePreference = useCallback(async (updates: Partial<{ [key: string]: any }>) => {
+      // Use upsert to create the row if it doesn't exist, or update it if it does.
+      // This makes the app more robust on first launch.
       const { error } = await supabase
           .from('user_preferences')
-          .update({ ...updates, updated_at: new Date().toISOString() })
-          .eq('id', USER_PREFERENCES_ID);
-      if (error) console.error(`Failed to update preference:`, error);
+          .upsert({ id: USER_PREFERENCES_ID, ...updates, updated_at: new Date().toISOString() });
+
+      if (error) {
+          console.error(`Failed to upsert preference:`, error);
+          setError(`Failed to save settings: ${error.message}`);
+      }
   }, []);
 
 
@@ -141,16 +146,18 @@ const App: React.FC = () => {
     setScripts([]);
     setGenerationProgress([]);
     setFinalAudios([]);
+    setError(null);
   };
 
   const handleStartGeneration = useCallback(async () => {
     if (!scripts.length || !selectedVoiceId || !selectedModelId) {
-        console.error("Cannot start generation: Missing scripts, voice ID, or model ID.");
+        setError("Cannot start generation: Missing scripts, voice ID, or model ID.");
         return;
     };
     
     setCurrentStep(AppStep.Generation);
     setFinalAudios([]);
+    setError(null);
 
     const initialProgress = scripts.map(script => ({
       scriptId: script.id,
@@ -266,7 +273,12 @@ const App: React.FC = () => {
             VoiceGen Pro
           </h1>
           <p className="text-gray-400 mt-2 text-lg">High-Quality Voiceovers, Simplified.</p>
-           {error && <div className="mt-4 p-3 bg-red-500/20 border border-red-500 text-red-300 rounded-lg animate-fade-in">{error}</div>}
+           {error && (
+            <div className="mt-4 p-3 bg-red-500/20 border border-red-500 text-red-300 rounded-lg animate-fade-in flex justify-between items-center">
+              <span>{error}</span>
+              <button onClick={() => setError(null)} className="font-bold text-xl">&times;</button>
+            </div>
+           )}
         </header>
         
         <main className="w-full">
