@@ -1,13 +1,23 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Use import.meta.env for client-side Vite environment variables.
-// FIX: Add a type assertion for import.meta.env to handle cases where
-// Vite's client types are not included in the TypeScript configuration.
-const supabaseUrl = (import.meta.env as Record<string, string>).VITE_SUPABASE_URL;
-const supabaseAnonKey = (import.meta.env as Record<string, string>).VITE_SUPABASE_ANON_KEY;
+// FIX: Correctly cast `import.meta` to `any` to access Vite environment variables without TypeScript errors.
+const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
+// FIX: Correctly cast `import.meta` to `any` to access Vite environment variables without TypeScript errors.
+const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+
+export let supabase: SupabaseClient | null = null;
+export let supabaseError: string | null = null;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Supabase URL and Anon Key must be provided as environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).");
+  supabaseError = "Supabase configuration is missing. Please provide VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY as environment variables.";
+  console.error(supabaseError);
+} else {
+  try {
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+  } catch (e) {
+    supabaseError = e instanceof Error ? e.message : 'An unknown error occurred while initializing Supabase.';
+    console.error(supabaseError);
+    supabase = null;
+  }
 }
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);

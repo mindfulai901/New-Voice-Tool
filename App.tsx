@@ -9,7 +9,7 @@ import {
   GenerationProgress,
   FinalAudio,
 } from './types';
-import { supabase } from './services/supabaseClient';
+import { supabase, supabaseError } from './services/supabaseClient';
 import { getModels, generateVoiceoverChunk } from './services/elevenLabsService';
 import { StepIndicator } from './components/StepIndicator';
 import { Step1_InputType } from './components/steps/Step1_InputType';
@@ -23,6 +23,25 @@ import { Step6_Output } from './components/steps/Step6_Output';
 const USER_PREFERENCES_ID = 1;
 
 const App: React.FC = () => {
+  if (!supabase) {
+    return (
+      <div className="min-h-screen text-white flex flex-col items-center justify-center p-4 bg-[#0E1117]">
+        <header className="text-center mb-8">
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-r from-red-500 to-orange-400 text-transparent bg-clip-text">
+              Configuration Error
+            </h1>
+        </header>
+        <div className="w-full max-w-2xl bg-red-900/30 border border-red-700 rounded-lg p-6 text-center shadow-lg animate-fade-in">
+          <h2 className="text-xl font-semibold text-red-300">Could not connect to the backend.</h2>
+          <p className="text-red-400 mt-2">{supabaseError || 'An unknown initialization error occurred.'}</p>
+          <p className="text-gray-400 mt-4 text-sm">
+            Please ensure you have a <code>.env.local</code> file with the correct Supabase credentials (<code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>), or that you have configured the environment variables on your hosting platform (e.g., Vercel).
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const [currentStep, setCurrentStep] = useState<AppStep>(AppStep.InputType);
   const [inputMode, setInputMode] = useState<InputMode>(null);
   const [scripts, setScripts] = useState<Script[]>([]);
@@ -203,7 +222,7 @@ const App: React.FC = () => {
         }
       }
     }
-  }, [scripts, selectedVoiceId, paragraphsPerChunk, selectedModelId, voiceSettings]);
+  }, [scripts, selectedVoiceId, paragraphsPerChunk, selectedModelId, voiceSettings, supabase]);
 
   if (isInitialLoad) {
       return (
