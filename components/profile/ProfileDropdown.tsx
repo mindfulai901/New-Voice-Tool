@@ -41,7 +41,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ profile, onSig
     <div className="relative" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)} 
-        className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full text-white font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 focus:ring-offset-gray-100 dark:focus:ring-offset-[#0E1117]"
+        className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-purple-600 via-pink-500 to-orange-500 rounded-full text-white font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 focus:ring-offset-gray-100 dark:focus:ring-offset-[#0E1117]"
       >
         {userInitials}
       </button>

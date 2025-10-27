@@ -70,8 +70,9 @@ export const AdvancedSettingsModal: React.FC<AdvancedSettingsModalProps> = ({ on
         const { error: rpcError } = await supabase.rpc('delete_user_account');
         if (rpcError) throw rpcError;
         
-        // The RPC call will trigger a sign-out event, which the AuthProvider will catch.
-        onClose();
+        // Explicitly sign out to ensure the AuthProvider detects the change
+        // and redirects the user to the landing page.
+        await supabase.auth.signOut();
 
     } catch (err) {
         let friendlyError = 'An unknown error occurred while deleting the account.';
