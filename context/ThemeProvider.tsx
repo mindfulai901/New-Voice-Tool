@@ -1,5 +1,5 @@
 
-import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
 
 type Theme = 'light' | 'dark';
 
@@ -11,35 +11,46 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<Theme>(() => {
+  // Default to 'light', will be updated by useEffect on mount
+  const [theme, setTheme] = useState<Theme>('light');
+
+  // Effect to set the initial theme from localStorage or system preference
+  useEffect(() => {
+    let initialTheme: Theme = 'light';
     try {
       if (typeof window !== 'undefined') {
         const savedTheme = window.localStorage.getItem('theme') as Theme | null;
         if (savedTheme && ['light', 'dark'].includes(savedTheme)) {
-          return savedTheme;
+          initialTheme = savedTheme;
+        } else {
+          initialTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       }
     } catch (error) {
-      console.error('Could not access localStorage to get theme.', error);
+      console.error('Could not access theme preference.', error);
+      initialTheme = 'light'; // Fallback
     }
-    return 'light';
-  });
+    setTheme(initialTheme);
+  }, []); // Empty dependency array means this runs only once on mount
 
+  // Effect to apply theme changes to the DOM and localStorage
   useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove(theme === 'dark' ? 'light' : 'dark');
-    root.classList.add(theme);
-  }, [theme]);
+    if (typeof window !== 'undefined') {
+      const root = window.document.documentElement;
+      
+      // Clean up previous theme classes
+      root.classList.remove('light', 'dark');
 
-  const setTheme = useCallback((newTheme: Theme) => {
-    try {
-      localStorage.setItem('theme', newTheme);
-    } catch (error) {
-      console.error('Could not access localStorage to set theme.', error);
+      // Add the new theme class
+      root.classList.add(theme);
+
+      try {
+        window.localStorage.setItem('theme', theme);
+      } catch (error) {
+        console.error('Could not save theme to localStorage.', error);
+      }
     }
-    setThemeState(newTheme);
-  }, []);
+  }, [theme]); // Runs whenever theme state changes
 
   const value = { theme, setTheme };
 
