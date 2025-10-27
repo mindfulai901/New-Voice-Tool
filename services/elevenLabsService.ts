@@ -2,23 +2,46 @@ import type { ElevenLabsModel, VoiceSetting, Voice, VoiceSettingsValues } from '
 
 // --- PROXY API FUNCTIONS ---
 
-export const getModels = async (): Promise<ElevenLabsModel[]> => {
-  const response = await fetch('/api/get-models');
+/**
+ * A centralized fetch wrapper for our serverless API endpoints.
+ * Provides more specific error messages for easier debugging.
+ * @param url The API endpoint path (e.g., '/api/get-models')
+ * @param options The standard RequestInit options for fetch.
+ * @returns A Promise that resolves to the successful Response object.
+ * @throws An Error with a user-friendly message if the fetch fails.
+ */
+async function fetchApi(url: string, options?: RequestInit): Promise<Response> {
+    try {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            // Try to parse the JSON error from our serverless function
+            try {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Request failed with status ${response.status}`);
+            } catch (e) {
+                // If the body is not JSON or another error occurs
+                throw new Error(`Request failed with status ${response.status}. Could not parse error response.`);
+            }
+        }
+        return response;
+    } catch (error) {
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+            // This suggests a network error or that the API endpoint doesn't exist/is misconfigured
+            throw new Error('Network error: Could not connect to the API. Please check your connection.');
+        }
+        // Re-throw other errors (like the ones we threw above)
+        throw error;
+    }
+}
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to fetch ElevenLabs models.');
-  }
+
+export const getModels = async (): Promise<ElevenLabsModel[]> => {
+  const response = await fetchApi('/api/get-models');
   return response.json();
 };
 
 export const getVoice = async (voiceId: string): Promise<Voice> => {
-    const response = await fetch(`/api/get-voice?voiceId=${voiceId}`);
-
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to fetch voice. It may be an invalid ID.`);
-    }
+    const response = await fetchApi(`/api/get-voice?voiceId=${voiceId}`);
     const data = await response.json();
     return { id: data.voice_id, name: data.name };
 };
@@ -53,7 +76,7 @@ export const generateVoiceoverChunk = async (
   voiceSettings: VoiceSettingsValues
 ): Promise<Blob> => {
 
-  const response = await fetch('/api/generate-voice', {
+  const response = await fetchApi('/api/generate-voice', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -65,11 +88,6 @@ export const generateVoiceoverChunk = async (
       voiceSettings,
     }),
   });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || `Failed to generate audio chunk.`);
-  }
 
   return response.blob();
 };

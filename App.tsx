@@ -75,7 +75,13 @@ const App: React.FC = () => {
 
       if (prefsError) {
         console.error('Error fetching user preferences:', prefsError);
-        // Don't set a fatal error, the app can proceed with defaults
+        if (prefsError.message.toLowerCase().includes('fetch')) {
+            setError('Network Error: Could not connect to the database. Please verify your VITE_SUPABASE_URL in your environment variables and check your network connection.');
+        } else if (prefsError.message.toLowerCase().includes('rls')) {
+            setError('Permission Denied: Could not access database. Please check your Supabase Row Level Security policies.');
+        } else {
+            setError(`Database Error: ${prefsError.message}`);
+        }
       } else if (prefs) {
         setParagraphsPerChunk(prefs.paragraphs_per_chunk || 2);
         setSelectedModelId(prefs.selected_model_id);
@@ -88,10 +94,10 @@ const App: React.FC = () => {
         .from('voices')
         .select('id:voice_id, name');
 
-      if (voicesError) {
+      if (voicesError && !error) { // Only set error if not already set by a more critical error
         console.error('Error fetching voices:', voicesError);
         setError('Could not load saved voices from the database.');
-      } else {
+      } else if (voices) {
         setSavedVoices(voices as Voice[]);
       }
       
@@ -99,7 +105,7 @@ const App: React.FC = () => {
     };
 
     fetchInitialData();
-  }, []);
+  }, [error]);
 
   // Fetch models from ElevenLabs via our serverless function
   useEffect(() => {
@@ -124,15 +130,17 @@ const App: React.FC = () => {
 
   // Persist settings changes to Supabase
   const updatePreference = useCallback(async (updates: Partial<{ [key: string]: any }>) => {
-      // Use upsert to create the row if it doesn't exist, or update it if it does.
-      // This makes the app more robust on first launch.
-      const { error } = await supabase
+      const { error: dbError } = await supabase
           .from('user_preferences')
           .upsert({ id: USER_PREFERENCES_ID, ...updates, updated_at: new Date().toISOString() });
 
-      if (error) {
-          console.error(`Failed to upsert preference:`, error);
-          setError(`Failed to save settings: ${error.message}`);
+      if (dbError) {
+          console.error(`Failed to upsert preference:`, dbError);
+          let friendlyError = `Failed to save settings: ${dbError.message}`;
+          if (dbError.message.toLowerCase().includes('fetch')) {
+              friendlyError = 'Network Error: Could not save settings to the database. Please check your connection and Supabase URL.';
+          }
+          setError(friendlyError);
       }
   }, []);
 
@@ -185,8 +193,9 @@ const App: React.FC = () => {
           audioBlobs.push(blob);
           setGenerationProgress(prev => prev.map(p => p.scriptId === script.id ? { ...p, completedChunks: i + 1 } : p));
         } catch (error) {
-          console.error(`Failed to generate chunk for script ${script.name}`, error);
-          setError(error instanceof Error ? error.message : 'An unknown generation error occurred.');
+          const errorMessage = `Generation failed for "${script.name}": ${error instanceof Error ? error.message : 'An unknown generation error occurred.'}`;
+          console.error(errorMessage, error);
+          setError(errorMessage);
           setGenerationProgress(prev => prev.map(p => p.scriptId === script.id ? { ...p, status: 'failed' } : p));
           generationFailed = true;
           break;
@@ -222,7 +231,7 @@ const App: React.FC = () => {
             setFinalAudios(prev => [...prev, { scriptId: script.id, scriptName: script.name, url: publicUrl }]);
             setGenerationProgress(prev => prev.map(p => p.scriptId === script.id ? { ...p, status: 'completed' } : p));
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Failed to save or upload audio file.';
+            const message = `Storage failed for "${script.name}": ${error instanceof Error ? error.message : 'Failed to save or upload audio file.'}`;
             console.error(message, error);
             setError(message);
             setGenerationProgress(prev => prev.map(p => p.scriptId === script.id ? { ...p, status: 'failed' } : p));
