@@ -29,9 +29,11 @@ export const Step2_Configuration: React.FC<Step2Props> = ({ inputMode, setScript
       };
 
       setError(null);
-      setFileNames(Array.from(files).map(f => f.name));
+      // FIX: Explicitly type `f` as File to access its 'name' property.
+      setFileNames(Array.from(files).map((f: File) => f.name));
 
-      const fileReadPromises: Promise<Omit<Script, 'id'>[]>[] = Array.from(files).map(file => {
+      // FIX: Explicitly type `file` as File to access its properties and pass to reader.
+      const fileReadPromises: Promise<Omit<Script, 'id'>[]>[] = Array.from(files).map((file: File) => {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = (e) => {
