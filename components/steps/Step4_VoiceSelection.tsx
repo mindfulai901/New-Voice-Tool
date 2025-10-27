@@ -61,7 +61,7 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ savedVoices, setSav
   const [isLibraryLoading, setIsLibraryLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [currentPreviewUrl, setCurrentPreviewUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -120,24 +120,19 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ savedVoices, setSav
   }, []);
 
   const handlePreview = useCallback((url: string) => {
-    if (audioRef.current && currentPreviewUrl === url) {
-        audioRef.current.paused ? audioRef.current.play() : audioRef.current.pause();
+    if (!audioRef.current) return;
+
+    if (currentPreviewUrl === url && !audioRef.current.paused) {
+      audioRef.current.pause();
     } else {
-        if (audioRef.current) {
-            audioRef.current.pause();
-        }
-        audioRef.current = new Audio(url);
+      if (currentPreviewUrl !== url) {
         setCurrentPreviewUrl(url);
-        audioRef.current.play();
-        
-        audioRef.current.onplay = () => setIsPlaying(true);
-        audioRef.current.onpause = () => setIsPlaying(false);
-        audioRef.current.onended = () => {
-            setIsPlaying(false);
-            setCurrentPreviewUrl(null);
-        };
+        audioRef.current.src = url;
+      }
+      audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
     }
   }, [currentPreviewUrl]);
+
 
   const handleSaveVoice = useCallback(async (voice: ElevenLabsVoice | { voice_id: string, name: string }) => {
     const voiceId = 'voice_id' in voice ? voice.voice_id : '';
@@ -211,6 +206,17 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ savedVoices, setSav
   
   return (
     <Card className="w-full max-w-4xl">
+      {/* A single, persistent audio element for reliable playback */}
+      <audio 
+        ref={audioRef}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onEnded={() => {
+          setIsPlaying(false);
+          setCurrentPreviewUrl(null);
+        }}
+      />
+      
       <h2 className="text-2xl font-bold mb-6 text-center">Voice & Settings</h2>
       
        {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}

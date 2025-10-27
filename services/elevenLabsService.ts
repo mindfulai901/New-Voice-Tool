@@ -55,9 +55,10 @@ export const getVoice = async (voiceId: string): Promise<Voice> => {
 
 // This can remain on the client as it's just static configuration data.
 const VOICE_SETTINGS: { [key: string]: VoiceSetting[] } = {
-  eleven_english_v3: [
-    { id: 'stability', name: 'Stability', type: 'slider', min: 0, max: 1, step: 0.5, defaultValue: 0.5 },
-  ],
+  // NOTE: According to the official ElevenLabs API documentation (as of late 2023),
+  // v3 models (like eleven_english_v3) do NOT support voice_settings adjustments via the API.
+  // Therefore, this is an empty array to accurately reflect the API's capabilities.
+  eleven_english_v3: [],
   eleven_multilingual_v2: [
     { id: 'stability', name: 'Stability', type: 'slider', min: 0, max: 1, step: 0.01, defaultValue: 0.5 },
     { id: 'similarity_boost', name: 'Clarity + Similarity', type: 'slider', min: 0, max: 1, step: 0.01, defaultValue: 0.75 },
