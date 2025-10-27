@@ -26,6 +26,7 @@ import { useAuth } from './components/auth/AuthProvider';
 import { LandingPage } from './components/LandingPage';
 import { Spinner } from './components/common/Spinner';
 import { Button } from './components/common/Button';
+import { UpdatePasswordModal } from './components/auth/UpdatePasswordModal';
 
 const App: React.FC = () => {
   const { session, user, loading: authLoading } = useAuth();
@@ -71,7 +72,7 @@ const App: React.FC = () => {
 };
 
 const MainApp: React.FC<{userId: string}> = ({ userId }) => {
-  const { signOut } = useAuth();
+  const { signOut, isPasswordRecovery, clearPasswordRecoveryFlag } = useAuth();
   const [currentStep, setCurrentStep] = useState<AppStep>(AppStep.InputType);
   const [inputMode, setInputMode] = useState<InputMode>(null);
   const [scripts, setScripts] = useState<Script[]>([]);
@@ -95,6 +96,28 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
   const [showHistory, setShowHistory] = useState(false);
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  
+  // Password Recovery State
+  const [showUpdatePasswordModal, setShowUpdatePasswordModal] = useState(false);
+  const [passwordUpdateMessage, setPasswordUpdateMessage] = useState('');
+
+  useEffect(() => {
+    if (isPasswordRecovery) {
+      setShowUpdatePasswordModal(true);
+    }
+  }, [isPasswordRecovery]);
+
+  const handlePasswordUpdated = () => {
+    setShowUpdatePasswordModal(false);
+    clearPasswordRecoveryFlag();
+    setPasswordUpdateMessage('Your password has been updated successfully!');
+    setTimeout(() => setPasswordUpdateMessage(''), 5000);
+  };
+  
+  const handleCancelPasswordUpdate = () => {
+    setShowUpdatePasswordModal(false);
+    clearPasswordRecoveryFlag();
+  };
 
   const selectedModel = useMemo(() => models.find(m => m.model_id === selectedModelId), [models, selectedModelId]);
 
@@ -397,6 +420,7 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
               onDelete={handleDeleteHistoryItems}
           />
       )}
+      {showUpdatePasswordModal && <UpdatePasswordModal onUpdated={handlePasswordUpdated} onCancel={handleCancelPasswordUpdate} />}
       <div className="w-full max-w-5xl mx-auto">
         <header className="text-center mb-8 relative">
           <div className="flex justify-between items-center">
@@ -418,6 +442,12 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
               <button onClick={() => setError(null)} className="font-bold text-xl">&times;</button>
             </div>
            )}
+            {passwordUpdateMessage && (
+              <div className="mt-4 p-3 bg-green-500/20 border border-green-500 text-green-300 rounded-lg animate-fade-in flex justify-between items-center">
+                  <span>{passwordUpdateMessage}</span>
+                  <button onClick={() => setPasswordUpdateMessage('')} className="font-bold text-xl">&times;</button>
+              </div>
+            )}
         </header>
         
         <main className="w-full">
