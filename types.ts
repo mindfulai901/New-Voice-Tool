@@ -26,7 +26,8 @@ export interface ElevenLabsModel {
 export interface ElevenLabsVoice {
     voice_id: string;
     name: string;
-    // other properties from the API can be added here if needed
+    labels: { [key: string]: string };
+    preview_url: string;
 }
 
 export interface VoiceSetting {

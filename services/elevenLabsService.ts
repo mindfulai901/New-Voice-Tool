@@ -1,4 +1,4 @@
-import type { ElevenLabsModel, VoiceSetting, Voice, VoiceSettingsValues } from '../types';
+import type { ElevenLabsModel, VoiceSetting, Voice, VoiceSettingsValues, ElevenLabsVoice } from '../types';
 
 // --- PROXY API FUNCTIONS ---
 
@@ -38,6 +38,12 @@ async function fetchApi(url: string, options?: RequestInit): Promise<Response> {
 export const getModels = async (): Promise<ElevenLabsModel[]> => {
   const response = await fetchApi('/api/get-models');
   return response.json();
+};
+
+export const getAllVoices = async (): Promise<ElevenLabsVoice[]> => {
+  const response = await fetchApi('/api/get-all-voices');
+  const data = await response.json();
+  return data.voices;
 };
 
 export const getVoice = async (voiceId: string): Promise<Voice> => {
