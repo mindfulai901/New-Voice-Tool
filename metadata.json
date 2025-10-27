@@ -1,0 +1,5 @@
+{
+  "name": "VoiceGen Pro",
+  "description": "A web application that generates high-quality voiceovers from scripts by intelligently splitting text into smaller chunks and processing them sequentially through a voice generation API.",
+  "requestFramePermissions": []
+}
