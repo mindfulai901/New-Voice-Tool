@@ -111,15 +111,15 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
     try {
         const voiceDetails = await getVoice(newVoiceId.trim());
         
-        const { data, error: dbError } = await supabase
+        // Insert basic voice info, omitting preview_url to avoid DB errors if column doesn't exist
+        const { error: dbError } = await supabase
           .from('voices')
-          .insert({ voice_id: voiceDetails.id, name: voiceDetails.name, user_id: userId, preview_url: voiceDetails.previewUrl })
-          .select('id:voice_id, name, previewUrl:preview_url')
-          .single();
+          .insert({ voice_id: voiceDetails.id, name: voiceDetails.name, user_id: userId });
 
         if (dbError) throw dbError;
 
-        setSavedVoices(prev => [...prev, data as Voice]);
+        // For the current session, add the full voice details (including preview) to state
+        setSavedVoices(prev => [...prev, voiceDetails]);
         setSelectedVoiceId(voiceDetails.id);
         setNewVoiceId('');
 

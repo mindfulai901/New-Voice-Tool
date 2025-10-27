@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import type { GenerationProgress } from '../../types';
 
 interface Step5Props {
@@ -17,14 +16,19 @@ const ProgressBar: React.FC<{ value: number }> = ({ value }) => (
 );
 
 export const Step5_Generation: React.FC<Step5Props> = ({ progress, onComplete }) => {
-    const [allCompleted, setAllCompleted] = useState(false);
-
     useEffect(() => {
-        const isComplete = progress.length > 0 && progress.every(p => p.status === 'completed' || p.status === 'failed');
+        if (progress.length === 0) return;
+        const isComplete = progress.every(p => p.status === 'completed' || p.status === 'failed');
+        
         if (isComplete) {
-            setAllCompleted(true);
+            // Automatically navigate to the output page after a short delay
+            const timer = setTimeout(() => {
+                onComplete();
+            }, 1200);
+            
+            return () => clearTimeout(timer); // Cleanup timer on component unmount
         }
-    }, [progress]);
+    }, [progress, onComplete]);
 
     return (
         <div className="w-full max-w-2xl text-center">
@@ -47,15 +51,6 @@ export const Step5_Generation: React.FC<Step5Props> = ({ progress, onComplete })
                     );
                 })}
             </div>
-
-            {allCompleted && (
-                <button
-                    onClick={onComplete}
-                    className="mt-12 px-8 py-3 bg-[#00BFFF] text-white font-semibold rounded-lg transition-transform duration-300 hover:scale-105 shadow-lg shadow-cyan-500/30"
-                >
-                    View Results
-                </button>
-            )}
         </div>
     );
 };

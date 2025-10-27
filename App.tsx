@@ -121,14 +121,20 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
       // Fetch saved voices
       const { data: voices, error: voicesError } = await supabase
         .from('voices')
-        .select('id:voice_id, name, previewUrl:preview_url')
+        .select('*') // More robust: select all available columns
         .eq('user_id', userId);
 
       if (voicesError && !error) { 
         console.error('Error fetching voices:', voicesError);
         setError('Could not load saved voices from the database.');
       } else if (voices) {
-        setSavedVoices(voices as Voice[]);
+        // Map to our Voice type, safely handling the optional previewUrl
+        const mappedVoices = voices.map(v => ({
+            id: v.voice_id,
+            name: v.name,
+            previewUrl: v.preview_url ?? undefined,
+        }));
+        setSavedVoices(mappedVoices);
       }
       
       setIsInitialLoad(false);
