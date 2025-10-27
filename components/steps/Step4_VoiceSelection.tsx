@@ -25,6 +25,7 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ savedVoices, setSav
   const [modelVoiceSettings, setModelVoiceSettings] = useState<VoiceSetting[]>([]);
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [addVoiceError, setAddVoiceError] = useState<string | null>(null);
   const [isAddingVoice, setIsAddingVoice] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -80,11 +81,12 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ savedVoices, setSav
 
   const handleAddVoice = async () => {
     if (!newVoiceId.trim() || isAddingVoice) return;
+    setAddVoiceError(null);
+    setError(null);
     if (savedVoices.some(v => v.id === newVoiceId)) {
-        setError('This voice ID has already been added.');
+        setAddVoiceError('This voice ID has already been added.');
         return;
     }
-    setError(null);
     setIsAddingVoice(true);
     try {
         const voiceDetails = await getVoice(newVoiceId.trim());
@@ -102,7 +104,8 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ savedVoices, setSav
         setSelectedVoiceId(voiceDetails.id);
         setNewVoiceId('');
     } catch (err) {
-        handleError(err);
+        const message = err instanceof Error ? err.message : 'An unknown error occurred.';
+        setAddVoiceError(message);
     } finally {
         setIsAddingVoice(false);
     }
@@ -184,13 +187,13 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ savedVoices, setSav
       <h2 className="text-2xl font-bold mb-6 text-center">Voice & Settings</h2>
       
       <div className="mb-6">
-          <label htmlFor="add-voice-input" className="block text-sm font-medium text-gray-300 mb-2">Add ElevenLabs Voice</label>
+          <label htmlFor="add-voice-input" className="block text-sm font-medium text-gray-300 mb-2">Add ElevenLabs Voice ID</label>
           <div className="flex gap-2">
             <input
               id="add-voice-input"
               type="text"
               value={newVoiceId}
-              onChange={(e) => { setNewVoiceId(e.target.value); setError(null); }}
+              onChange={(e) => { setNewVoiceId(e.target.value); setError(null); setAddVoiceError(null); }}
               placeholder="Enter Voice ID"
               className="flex-grow p-2 bg-[#0E1117] border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
             />
@@ -198,6 +201,13 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ savedVoices, setSav
               {isAddingVoice ? <Spinner /> : 'Save'}
             </Button>
           </div>
+          {addVoiceError && <p className="text-red-400 text-sm mt-2">{addVoiceError}</p>}
+          <p className="text-gray-500 text-xs mt-2">
+            Find your Voice ID in the{" "}
+            <a href="https://elevenlabs.io/voice-library" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
+              ElevenLabs Voice Library
+            </a>.
+          </p>
       </div>
       
       {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
