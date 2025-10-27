@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { Button } from '../common/Button';
@@ -43,16 +44,23 @@ export const AdvancedSettingsModal: React.FC<AdvancedSettingsModalProps> = ({ on
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) throw updateError;
       
-      setMessage('Your password has been updated successfully.');
+      setMessage('Password updated successfully. You will be signed out shortly.');
+      
+      // Stop loading spinner to show message, then sign out.
+      setLoading(false);
+      setShowPasswordForm(false);
       setPassword('');
       setConfirmPassword('');
-      setShowPasswordForm(false);
-      setTimeout(() => setMessage(''), 3000);
+
+      setTimeout(async () => {
+        await supabase.auth.signOut();
+        // The onAuthStateChange listener will handle the UI update to the landing page.
+        // No need to call onClose explicitly.
+      }, 2500);
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update password.');
-    } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
