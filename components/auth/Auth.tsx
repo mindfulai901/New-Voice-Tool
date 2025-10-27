@@ -28,20 +28,24 @@ export const Auth: React.FC = () => {
 
     try {
       if (view === 'signUp') {
-        const { error: signUpError } = await supabase.auth.signUp({ email, password });
+        const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
         if (signUpError) throw signUpError;
-        setMessage('Success! Please check your email for a confirmation link.');
+        
+        // Heuristic check: If the user was created more than a minute ago,
+        // they likely already existed. Supabase doesn't error on this for security reasons.
+        if (data.user && (new Date().getTime() - new Date(data.user.created_at).getTime()) > 60000) {
+            setError('An account with this email already exists. Please sign in or use a different email.');
+        } else {
+            setMessage('Success! Please check your email for a confirmation link.');
+        }
+
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
-        // The onAuthStateChange listener in AuthProvider will handle the redirect.
+        // The onAuthStateChange listener in AuthProvider will handle the successful login.
       }
     } catch (err) {
-      if (view === 'signUp' && err instanceof Error && err.message.includes('User already registered')) {
-        setError('An account with this email already exists. Please sign in or use a different email.');
-      } else {
-        setError(err instanceof Error ? err.message : 'An unknown error occurred.');
-      }
+      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
     } finally {
       setLoading(false);
     }

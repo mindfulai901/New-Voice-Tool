@@ -29,7 +29,29 @@ import { Button } from './components/common/Button';
 import { UpdatePasswordModal } from './components/auth/UpdatePasswordModal';
 
 const App: React.FC = () => {
-  const { session, user, loading: authLoading } = useAuth();
+  const { session, user, loading: authLoading, isPasswordRecovery, clearPasswordRecoveryFlag } = useAuth();
+  
+  // Password Recovery State is managed at the top level
+  const [showUpdatePasswordModal, setShowUpdatePasswordModal] = useState(false);
+  const [passwordUpdateMessage, setPasswordUpdateMessage] = useState('');
+
+  useEffect(() => {
+    if (isPasswordRecovery) {
+      setShowUpdatePasswordModal(true);
+    }
+  }, [isPasswordRecovery]);
+
+  const handlePasswordUpdated = () => {
+    setShowUpdatePasswordModal(false);
+    clearPasswordRecoveryFlag();
+    setPasswordUpdateMessage('Your password has been updated successfully!');
+    setTimeout(() => setPasswordUpdateMessage(''), 5000);
+  };
+  
+  const handleCancelPasswordUpdate = () => {
+    setShowUpdatePasswordModal(false);
+    clearPasswordRecoveryFlag();
+  };
 
   if (authLoading) {
     return (
@@ -45,10 +67,6 @@ const App: React.FC = () => {
       );
   }
 
-  if (!session || !user) {
-    return <LandingPage />;
-  }
-  
   if (!supabase) {
     return (
       <div className="min-h-screen text-white flex flex-col items-center justify-center p-4 bg-[#0E1117]">
@@ -68,11 +86,27 @@ const App: React.FC = () => {
     );
   }
 
-  return <MainApp userId={user.id} />;
+  return (
+    <>
+      {showUpdatePasswordModal && <UpdatePasswordModal onUpdated={handlePasswordUpdated} onCancel={handleCancelPasswordUpdate} />}
+      
+      {(!session || !user) ? (
+        <LandingPage />
+      ) : (
+        <MainApp userId={user.id} passwordUpdateMessage={passwordUpdateMessage} setPasswordUpdateMessage={setPasswordUpdateMessage} />
+      )}
+    </>
+  );
 };
 
-const MainApp: React.FC<{userId: string}> = ({ userId }) => {
-  const { signOut, isPasswordRecovery, clearPasswordRecoveryFlag } = useAuth();
+interface MainAppProps {
+  userId: string;
+  passwordUpdateMessage: string;
+  setPasswordUpdateMessage: (message: string) => void;
+}
+
+const MainApp: React.FC<MainAppProps> = ({ userId, passwordUpdateMessage, setPasswordUpdateMessage }) => {
+  const { signOut } = useAuth();
   const [currentStep, setCurrentStep] = useState<AppStep>(AppStep.InputType);
   const [inputMode, setInputMode] = useState<InputMode>(null);
   const [scripts, setScripts] = useState<Script[]>([]);
@@ -96,28 +130,6 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
   const [showHistory, setShowHistory] = useState(false);
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-  
-  // Password Recovery State
-  const [showUpdatePasswordModal, setShowUpdatePasswordModal] = useState(false);
-  const [passwordUpdateMessage, setPasswordUpdateMessage] = useState('');
-
-  useEffect(() => {
-    if (isPasswordRecovery) {
-      setShowUpdatePasswordModal(true);
-    }
-  }, [isPasswordRecovery]);
-
-  const handlePasswordUpdated = () => {
-    setShowUpdatePasswordModal(false);
-    clearPasswordRecoveryFlag();
-    setPasswordUpdateMessage('Your password has been updated successfully!');
-    setTimeout(() => setPasswordUpdateMessage(''), 5000);
-  };
-  
-  const handleCancelPasswordUpdate = () => {
-    setShowUpdatePasswordModal(false);
-    clearPasswordRecoveryFlag();
-  };
 
   const selectedModel = useMemo(() => models.find(m => m.model_id === selectedModelId), [models, selectedModelId]);
 
@@ -420,7 +432,6 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
               onDelete={handleDeleteHistoryItems}
           />
       )}
-      {showUpdatePasswordModal && <UpdatePasswordModal onUpdated={handlePasswordUpdated} onCancel={handleCancelPasswordUpdate} />}
       <div className="w-full max-w-5xl mx-auto">
         <header className="text-center mb-8 relative">
           <div className="flex justify-between items-center">
