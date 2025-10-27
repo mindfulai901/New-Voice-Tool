@@ -50,7 +50,6 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ profile, onSig
         <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#1F242F] border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-20 animate-fade-in origin-top-right">
           <div className="p-4 border-b border-gray-200 dark:border-gray-700">
             <p className="font-semibold text-gray-800 dark:text-white truncate">{userName}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{profile?.id}</p>
           </div>
           <div className="p-2">
              <div className="px-2 py-2">
