@@ -14,9 +14,9 @@ const InputModeCard: React.FC<{ title: string, description: string, icon: React.
         className="text-center w-full sm:w-64 transform hover:-translate-y-2 hover:border-cyan-400 cursor-pointer"
         onClick={onClick}
     >
-        <div className="flex justify-center mb-4 text-cyan-400">{icon}</div>
-        <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
-        <p className="text-gray-400 text-sm">{description}</p>
+        <div className="flex justify-center mb-4 text-cyan-500 dark:text-cyan-400">{icon}</div>
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{title}</h3>
+        <p className="text-gray-600 dark:text-gray-400 text-sm">{description}</p>
     </Card>
 );
 
@@ -30,7 +30,7 @@ export const Step1_InputType: React.FC<Step1Props> = ({ setInputMode, onNext }) 
   return (
     <div className="w-full max-w-2xl text-center">
       <h2 className="text-3xl font-bold mb-4">Choose Your Workflow</h2>
-      <p className="text-gray-400 mb-12">How would you like to provide your script(s)?</p>
+      <p className="text-gray-600 dark:text-gray-400 mb-12">How would you like to provide your script(s)?</p>
       <div className="flex flex-col sm:flex-row justify-center items-center gap-8">
         <InputModeCard
             title="Single Script Mode"

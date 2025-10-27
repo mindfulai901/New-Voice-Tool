@@ -61,19 +61,19 @@ export const UpdatePasswordModal: React.FC<UpdatePasswordModalProps> = ({ onUpda
       <Card className="max-w-md w-full relative">
         <button
           onClick={onCancel}
-          className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors text-2xl"
+          className="absolute top-3 right-3 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-2xl"
           aria-label="Close"
           disabled={loading}
         >
           &times;
         </button>
         <div className="w-full p-4">
-            <h2 className="text-2xl font-bold text-center mb-1 text-white">Update Your Password</h2>
-            <p className="text-gray-400 text-center mb-6">Enter a new password for your account.</p>
+            <h2 className="text-2xl font-bold text-center mb-1 text-gray-900 dark:text-white">Update Your Password</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-center mb-6">Enter a new password for your account.</p>
 
             <form onSubmit={handleUpdatePassword} className="space-y-4">
                 <div>
-                    <label htmlFor="new-password"className="text-sm font-medium text-gray-300 block mb-2">New Password</label>
+                    <label htmlFor="new-password"className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">New Password</label>
                     <input
                         id="new-password"
                         type="password"
@@ -81,12 +81,12 @@ export const UpdatePasswordModal: React.FC<UpdatePasswordModalProps> = ({ onUpda
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         minLength={6}
-                        className="w-full p-3 bg-[#0E1117] border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                        className="w-full p-3 bg-gray-50 dark:bg-[#0E1117] border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
                         placeholder="••••••••"
                     />
                 </div>
                 <div>
-                    <label htmlFor="confirm-password"className="text-sm font-medium text-gray-300 block mb-2">Confirm New Password</label>
+                    <label htmlFor="confirm-password"className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">Confirm New Password</label>
                     <input
                         id="confirm-password"
                         type="password"
@@ -94,7 +94,7 @@ export const UpdatePasswordModal: React.FC<UpdatePasswordModalProps> = ({ onUpda
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
                         minLength={6}
-                        className="w-full p-3 bg-[#0E1117] border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                        className="w-full p-3 bg-gray-50 dark:bg-[#0E1117] border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
                         placeholder="••••••••"
                     />
                 </div>
@@ -103,8 +103,8 @@ export const UpdatePasswordModal: React.FC<UpdatePasswordModalProps> = ({ onUpda
                 </Button>
             </form>
             
-            {message && <p className="text-green-400 text-sm mt-4 text-center">{message}</p>}
-            {error && <p className="text-red-400 text-sm mt-4 text-center">{error}</p>}
+            {message && <p className="text-green-500 text-sm mt-4 text-center">{message}</p>}
+            {error && <p className="text-red-500 text-sm mt-4 text-center">{error}</p>}
         </div>
       </Card>
     </div>

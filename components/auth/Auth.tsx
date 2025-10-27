@@ -87,91 +87,91 @@ export const Auth: React.FC = () => {
   if (view === 'forgotPassword') {
     return (
         <div className="w-full">
-            <h2 className="text-2xl font-bold text-center mb-1 text-white">Reset Password</h2>
-            <p className="text-gray-400 text-center mb-6">Enter your email to receive a reset link.</p>
+            <h2 className="text-2xl font-bold text-center mb-1 text-gray-900 dark:text-white">Reset Password</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-center mb-6">Enter your email to receive a reset link.</p>
             <form onSubmit={handlePasswordReset} className="space-y-4">
                 <div>
-                    <label htmlFor="email" className="text-sm font-medium text-gray-300 block mb-2">Email</label>
-                    <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full p-3 bg-[#0E1117] border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none" placeholder="you@example.com" />
+                    <label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">Email</label>
+                    <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full p-3 bg-gray-50 dark:bg-[#0E1117] border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none" placeholder="you@example.com" />
                 </div>
                 <Button type="submit" className="w-full !py-3 flex items-center justify-center" disabled={loading}>
                     {loading ? <Spinner /> : 'Send Reset Link'}
                 </Button>
             </form>
             <div className="text-center mt-4">
-                <button onClick={() => { setView('signIn'); setMessage(''); setError(''); }} className="text-sm text-cyan-400 hover:underline">
+                <button onClick={() => { setView('signIn'); setMessage(''); setError(''); }} className="text-sm text-cyan-600 dark:text-cyan-400 hover:underline">
                     Back to Sign In
                 </button>
             </div>
-            {message && <p className="text-green-400 text-sm mt-4 text-center">{message}</p>}
-            {error && <p className="text-red-400 text-sm mt-4 text-center">{error}</p>}
+            {message && <p className="text-green-500 text-sm mt-4 text-center">{message}</p>}
+            {error && <p className="text-red-500 text-sm mt-4 text-center">{error}</p>}
         </div>
     );
   }
 
   return (
     <div className="w-full">
-      <div className="flex border-b border-gray-700 mb-6">
+      <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
         <button
           onClick={() => { setView('signIn'); setMessage(''); setError(''); setFirstName(''); setLastName(''); }}
-          className={`px-4 py-2 w-1/2 font-semibold transition-colors ${view === 'signIn' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-white'}`}
+          className={`px-4 py-2 w-1/2 font-semibold transition-colors ${view === 'signIn' ? 'text-cyan-600 dark:text-cyan-400 border-b-2 border-cyan-500' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
         >
           Sign In
         </button>
         <button
           onClick={() => { setView('signUp'); setMessage(''); setError(''); }}
-          className={`px-4 py-2 w-1/2 font-semibold transition-colors ${view === 'signUp' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-white'}`}
+          className={`px-4 py-2 w-1/2 font-semibold transition-colors ${view === 'signUp' ? 'text-cyan-600 dark:text-cyan-400 border-b-2 border-cyan-500' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
         >
           Sign Up
         </button>
       </div>
 
-      <h2 className="text-2xl font-bold text-center mb-1 text-white">{view === 'signUp' ? 'Create an Account' : 'Welcome Back'}</h2>
-      <p className="text-gray-400 text-center mb-6">{view === 'signUp' ? 'Get started with your free account.' : 'Sign in to continue.'}</p>
+      <h2 className="text-2xl font-bold text-center mb-1 text-gray-900 dark:text-white">{view === 'signUp' ? 'Create an Account' : 'Welcome Back'}</h2>
+      <p className="text-gray-600 dark:text-gray-400 text-center mb-6">{view === 'signUp' ? 'Get started with your free account.' : 'Sign in to continue.'}</p>
       
       <form onSubmit={handleAuth} className="space-y-4">
         {view === 'signUp' && (
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
-              <label htmlFor="firstName" className="text-sm font-medium text-gray-300 block mb-2">First Name</label>
+              <label htmlFor="firstName" className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">First Name</label>
               <input
                 id="firstName"
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 required
-                className="w-full p-3 bg-[#0E1117] border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                className="w-full p-3 bg-gray-50 dark:bg-[#0E1117] border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
                 placeholder="Jane"
               />
             </div>
             <div className="flex-1">
-              <label htmlFor="lastName" className="text-sm font-medium text-gray-300 block mb-2">Last Name</label>
+              <label htmlFor="lastName" className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">Last Name</label>
               <input
                 id="lastName"
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 required
-                className="w-full p-3 bg-[#0E1117] border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                className="w-full p-3 bg-gray-50 dark:bg-[#0E1117] border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
                 placeholder="Doe"
               />
             </div>
           </div>
         )}
         <div>
-          <label htmlFor="email" className="text-sm font-medium text-gray-300 block mb-2">Email</label>
+          <label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">Email</label>
           <input
             id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full p-3 bg-[#0E1117] border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+            className="w-full p-3 bg-gray-50 dark:bg-[#0E1117] border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
             placeholder="you@example.com"
           />
         </div>
         <div>
-          <label htmlFor="password"className="text-sm font-medium text-gray-300 block mb-2">Password</label>
+          <label htmlFor="password"className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">Password</label>
           <input
             id="password"
             type="password"
@@ -179,13 +179,13 @@ export const Auth: React.FC = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
-            className="w-full p-3 bg-[#0E1117] border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+            className="w-full p-3 bg-gray-50 dark:bg-[#0E1117] border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
             placeholder="••••••••"
           />
         </div>
         {view === 'signIn' && (
             <div className="text-right">
-                <button type="button" onClick={() => setView('forgotPassword')} className="text-sm text-cyan-400 hover:underline">
+                <button type="button" onClick={() => setView('forgotPassword')} className="text-sm text-cyan-600 dark:text-cyan-400 hover:underline">
                     Forgot your password?
                 </button>
             </div>
@@ -195,8 +195,8 @@ export const Auth: React.FC = () => {
         </Button>
       </form>
       
-      {message && <p className="text-green-400 text-sm mt-4 text-center">{message}</p>}
-      {error && <p className="text-red-400 text-sm mt-4 text-center">{error}</p>}
+      {message && <p className="text-green-500 text-sm mt-4 text-center">{message}</p>}
+      {error && <p className="text-red-500 text-sm mt-4 text-center">{error}</p>}
     </div>
   );
 };

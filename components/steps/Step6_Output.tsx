@@ -52,7 +52,7 @@ export const Step6_Output: React.FC<Step6Props> = ({ finalAudios, onRestart }) =
   return (
     <Card className="w-full max-w-3xl text-center">
       <h2 className="text-3xl font-bold mb-4">Generation Complete!</h2>
-      <p className="text-gray-400 mb-8">Here are your generated voiceover files.</p>
+      <p className="text-gray-600 dark:text-gray-400 mb-8">Here are your generated voiceover files.</p>
 
       {downloadError && (
         <p className="text-red-400 text-sm mb-4">{downloadError}</p>
@@ -60,7 +60,7 @@ export const Step6_Output: React.FC<Step6Props> = ({ finalAudios, onRestart }) =
 
       <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
         {finalAudios.map(audio => (
-          <div key={audio.scriptId} className="bg-white/5 p-4 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div key={audio.scriptId} className="bg-gray-100 dark:bg-white/5 p-4 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-4">
             <span className="font-medium truncate">{audio.scriptName}</span>
             <div className="flex items-center gap-4">
                 <audio 
@@ -78,7 +78,7 @@ export const Step6_Output: React.FC<Step6Props> = ({ finalAudios, onRestart }) =
                 ></audio>
                 <Button
                     variant="secondary"
-                    className="!bg-green-600 hover:!bg-green-700 !px-4 !py-2 whitespace-nowrap w-36 flex justify-center items-center"
+                    className="!bg-green-600 hover:!bg-green-700 !text-white !px-4 !py-2 whitespace-nowrap w-36 flex justify-center items-center"
                     onClick={() => handleDownload(audio.url, audio.scriptName, audio.scriptId)}
                     disabled={downloadingId !== null}
                 >

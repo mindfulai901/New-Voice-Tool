@@ -24,8 +24,9 @@ import { HistoryPanel } from './components/history/HistoryPanel';
 import { useAuth } from './components/auth/AuthProvider';
 import { LandingPage } from './components/LandingPage';
 import { Spinner } from './components/common/Spinner';
-import { Button } from './components/common/Button';
 import { UpdatePasswordModal } from './components/auth/UpdatePasswordModal';
+import { ProfileDropdown } from './components/profile/ProfileDropdown';
+import { AdvancedSettingsModal } from './components/profile/AdvancedSettingsModal';
 
 const App: React.FC = () => {
   const { session, user, loading: authLoading, isPasswordRecovery, clearPasswordRecoveryFlag, signOut } = useAuth();
@@ -43,13 +44,13 @@ const App: React.FC = () => {
 
   if (authLoading) {
     return (
-        <div className="min-h-screen text-white flex flex-col items-center justify-center p-4 bg-[#0E1117]">
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-blue-500 text-transparent bg-clip-text mb-4">
+        <div className="min-h-screen text-gray-800 dark:text-white flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-[#0E1117]">
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-r from-cyan-500 to-blue-600 dark:from-cyan-400 dark:to-blue-500 text-transparent bg-clip-text mb-4">
               VoiceGen Pro
             </h1>
             <div className="flex items-center space-x-3">
                 <Spinner />
-                <p className="text-gray-400 text-lg">Loading Session...</p>
+                <p className="text-gray-600 dark:text-gray-400 text-lg">Loading Session...</p>
             </div>
         </div>
       );
@@ -92,7 +93,7 @@ interface MainAppProps {
 }
 
 const MainApp: React.FC<MainAppProps> = ({ userId }) => {
-  const { signOut } = useAuth();
+  const { signOut, profile } = useAuth();
   const [currentStep, setCurrentStep] = useState<AppStep>(AppStep.InputType);
   const [inputMode, setInputMode] = useState<InputMode>(null);
   const [scripts, setScripts] = useState<Script[]>([]);
@@ -112,8 +113,9 @@ const MainApp: React.FC<MainAppProps> = ({ userId }) => {
   const [error, setError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   
-  // History State
+  // UI State
   const [showHistory, setShowHistory] = useState(false);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
@@ -377,13 +379,13 @@ const MainApp: React.FC<MainAppProps> = ({ userId }) => {
 
   if (isInitialLoad) {
       return (
-        <div className="min-h-screen text-white flex flex-col items-center justify-center p-4 bg-[#0E1117]">
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-blue-500 text-transparent bg-clip-text mb-4">
+        <div className="min-h-screen text-gray-800 dark:text-white flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-[#0E1117]">
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-r from-cyan-500 to-blue-600 dark:from-cyan-400 dark:to-blue-500 text-transparent bg-clip-text mb-4">
               VoiceGen Pro
             </h1>
             <div className="flex items-center space-x-3">
                 <Spinner />
-                <p className="text-gray-400 text-lg">Loading your workspace...</p>
+                <p className="text-gray-600 dark:text-gray-400 text-lg">Loading your workspace...</p>
             </div>
         </div>
       );
@@ -409,7 +411,7 @@ const MainApp: React.FC<MainAppProps> = ({ userId }) => {
   };
 
   return (
-    <div className="min-h-screen text-white flex flex-col items-center justify-start p-4 sm:p-8 bg-[#0E1117]">
+    <div className="min-h-screen text-gray-900 dark:text-white flex flex-col items-center justify-start p-4 sm:p-8 bg-gray-50 dark:bg-[#0E1117]">
       {showHistory && (
           <HistoryPanel 
               items={historyItems}
@@ -418,19 +420,26 @@ const MainApp: React.FC<MainAppProps> = ({ userId }) => {
               onDelete={handleDeleteHistoryItems}
           />
       )}
+      {showAdvancedSettings && (
+        <AdvancedSettingsModal onClose={() => setShowAdvancedSettings(false)} />
+      )}
       <div className="w-full max-w-5xl mx-auto">
         <header className="text-center mb-8 relative">
           <div className="flex justify-between items-center">
-            <div></div>
+            <div className="w-24"></div> {/* Spacer */}
             <div className="flex-grow text-center">
-              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-blue-500 text-transparent bg-clip-text">
+              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-r from-cyan-500 to-blue-600 dark:from-cyan-400 dark:to-blue-500 text-transparent bg-clip-text">
                 VoiceGen Pro
               </h1>
-              <p className="text-gray-400 mt-2 text-lg">High-Quality Voiceovers, Simplified.</p>
+              <p className="text-gray-600 dark:text-gray-400 mt-2 text-lg">High-Quality Voiceovers, Simplified.</p>
             </div>
-             <div className="flex items-center gap-2">
-                <Button variant="secondary" onClick={() => setShowHistory(true)} className="!px-4 !py-2">History</Button>
-                <Button variant="secondary" onClick={signOut} className="!px-4 !py-2">Logout</Button>
+             <div className="w-24 flex justify-end">
+                <ProfileDropdown 
+                  profile={profile}
+                  onShowHistory={() => setShowHistory(true)}
+                  onShowAdvancedSettings={() => setShowAdvancedSettings(true)}
+                  onSignOut={signOut}
+                />
              </div>
           </div>
            {error && (

@@ -79,3 +79,9 @@ export interface HistoryItem {
   createdAt: string;
   filePath: string; // The path in Supabase storage
 }
+
+export interface Profile {
+  id: string;
+  first_name: string;
+  last_name: string;
+}

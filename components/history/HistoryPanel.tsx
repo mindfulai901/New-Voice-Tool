@@ -56,25 +56,25 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ items, isLoading, on
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 flex items-center justify-center animate-fade-in" onClick={onClose}>
       <div 
-        className="bg-[#12161F] border border-white/10 rounded-2xl w-full max-w-4xl h-[90vh] flex flex-col shadow-2xl"
+        className="bg-gray-100 dark:bg-[#12161F] border border-gray-200 dark:border-white/10 rounded-2xl w-full max-w-4xl h-[90vh] flex flex-col shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
-        <header className="flex items-center justify-between p-6 border-b border-white/10">
+        <header className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-white/10">
           <h2 className="text-2xl font-bold">Generation History</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">&times;</button>
+          <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-2xl font-bold">&times;</button>
         </header>
 
         <div className="flex-grow overflow-hidden flex flex-col">
           {items.length > 0 && (
-             <div className="flex items-center justify-between p-4 border-b border-white/10 bg-white/5">
+             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-white/10 bg-black/5">
                 <div className="flex items-center gap-3">
                     <input 
                         type="checkbox" 
-                        className="h-4 w-4 rounded bg-gray-700 border-gray-600 text-cyan-500 focus:ring-cyan-600"
+                        className="h-4 w-4 rounded bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-cyan-600 dark:text-cyan-500 focus:ring-cyan-600"
                         checked={isAllSelected}
                         onChange={handleSelectAll}
                     />
-                    <label className="text-sm text-gray-300">
+                    <label className="text-sm text-gray-700 dark:text-gray-300">
                         {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select All'}
                     </label>
                 </div>
@@ -91,7 +91,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ items, isLoading, on
 
           <div className="flex-grow overflow-y-auto p-4 space-y-3">
             {isLoading ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-400">
+              <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
                 <Spinner />
                 <p className="mt-4">Loading History...</p>
               </div>

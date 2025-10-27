@@ -1,12 +1,15 @@
 
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import type { AuthError, Session, User } from '@supabase/supabase-js';
+import type { Profile } from '../../types';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  profile: Profile | null;
   isPasswordRecovery: boolean;
   signOut: () => Promise<{ error: AuthError | null }>;
   clearPasswordRecoveryFlag: () => void;
@@ -18,6 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   useEffect(() => {
@@ -50,10 +54,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  useEffect(() => {
+    if (user && supabase) {
+      const fetchProfile = async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .eq('id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') { // Ignore "no rows found" error
+          console.error('Error fetching profile:', error);
+        } else {
+          setProfile(data as Profile);
+        }
+      };
+      fetchProfile();
+    } else {
+      setProfile(null); // Clear profile on logout
+    }
+  }, [user]);
+
   const value = {
     session,
     user,
     loading,
+    profile,
     isPasswordRecovery,
     signOut: () => supabase!.auth.signOut(),
     clearPasswordRecoveryFlag: () => setIsPasswordRecovery(false),

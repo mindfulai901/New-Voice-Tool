@@ -26,14 +26,14 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => 
                 className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-sm md:text-base transition-colors duration-300
                   ${step.id === currentStep ? 'bg-[#00BFFF] text-white ring-4 ring-cyan-500/30' : ''}
                   ${step.id < currentStep ? 'bg-green-500 text-white' : ''}
-                  ${step.id > currentStep ? 'bg-[#2A2F3A] text-gray-400' : ''}
+                  ${step.id > currentStep ? 'bg-gray-200 text-gray-500 dark:bg-[#2A2F3A] dark:text-gray-400' : ''}
                 `}
               >
                 {step.id < currentStep ? '✓' : step.id}
               </div>
               <span
                 className={`mt-2 text-xs md:text-sm hidden sm:block
-                  ${step.id === currentStep ? 'text-[#00BFFF] font-semibold' : 'text-gray-400'}
+                  ${step.id === currentStep ? 'text-[#00BFFF] font-semibold' : 'text-gray-500 dark:text-gray-400'}
                 `}
               >
                 {step.name}
@@ -43,7 +43,7 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => 
             {index !== steps.length - 1 && (
               <div
                 className={`h-1 w-8 md:w-16 mx-2 transition-colors duration-500
-                  ${step.id < currentStep ? 'bg-green-500' : 'bg-[#2A2F3A]'}
+                  ${step.id < currentStep ? 'bg-green-500' : 'bg-gray-200 dark:bg-[#2A2F3A]'}
                 `}
               />
             )}

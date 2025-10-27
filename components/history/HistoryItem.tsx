@@ -30,9 +30,9 @@ export const HistoryItemComponent: React.FC<HistoryItemProps> = ({ item, isSelec
     <>
       {showScriptModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in" onClick={() => setShowScriptModal(false)}>
-            <div className="bg-[#181C25] border border-white/10 rounded-xl w-full max-w-2xl p-6 shadow-lg" onClick={e => e.stopPropagation()}>
-                <h3 className="text-lg font-bold mb-4 text-cyan-400">Script for "{item.scriptName}"</h3>
-                <pre className="bg-black/20 p-4 rounded-lg text-gray-300 max-h-96 overflow-y-auto whitespace-pre-wrap font-sans text-sm">{item.scriptContent}</pre>
+            <div className="bg-white dark:bg-[#181C25] border border-gray-200 dark:border-white/10 rounded-xl w-full max-w-2xl p-6 shadow-lg" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-bold mb-4 text-cyan-600 dark:text-cyan-400">Script for "{item.scriptName}"</h3>
+                <pre className="bg-gray-100 dark:bg-black/20 p-4 rounded-lg text-gray-700 dark:text-gray-300 max-h-96 overflow-y-auto whitespace-pre-wrap font-sans text-sm">{item.scriptContent}</pre>
                 <div className="text-right mt-6">
                     <Button variant="secondary" onClick={() => setShowScriptModal(false)}>Close</Button>
                 </div>
@@ -40,16 +40,16 @@ export const HistoryItemComponent: React.FC<HistoryItemProps> = ({ item, isSelec
         </div>
       )}
 
-      <div className={`flex items-center gap-4 p-3 rounded-lg transition-colors duration-200 ${isSelected ? 'bg-cyan-500/10' : 'bg-white/5'}`}>
+      <div className={`flex items-center gap-4 p-3 rounded-lg transition-colors duration-200 ${isSelected ? 'bg-cyan-500/10' : 'bg-black/5'}`}>
         <input 
           type="checkbox" 
-          className="h-4 w-4 rounded flex-shrink-0 bg-gray-700 border-gray-600 text-cyan-500 focus:ring-cyan-600"
+          className="h-4 w-4 rounded flex-shrink-0 bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-cyan-600 dark:text-cyan-500 focus:ring-cyan-600"
           checked={isSelected}
           onChange={() => onSelect(item.id)}
         />
         <div className="flex-grow">
-          <p className="font-semibold text-white">{item.scriptName}</p>
-          <p className="text-xs text-gray-400">{creationDate}</p>
+          <p className="font-semibold text-gray-900 dark:text-white">{item.scriptName}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{creationDate}</p>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
           <audio controls src={item.audioUrl} className="h-9"></audio>

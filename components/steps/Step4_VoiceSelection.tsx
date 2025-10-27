@@ -158,8 +158,8 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
       
       <div className="space-y-6">
         {/* Saved Voices Section */}
-        <div className="border-b border-white/10 pb-6">
-          <h3 className="text-lg font-semibold mb-4 text-cyan-400">Your Voices</h3>
+        <div className="border-b border-gray-200 dark:border-white/10 pb-6">
+          <h3 className="text-lg font-semibold mb-4 text-cyan-600 dark:text-cyan-400">Your Voices</h3>
           <div className="flex flex-wrap gap-3 items-center min-h-[4rem]">
               {savedVoices.length === 0 ? (
                   <p className="text-gray-500 text-sm">Add a voice from your ElevenLabs account using its Voice ID to get started.</p>
@@ -167,12 +167,12 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
                 <div
                   key={voice.id}
                   onClick={() => setSelectedVoiceId(voice.id)}
-                  className={`relative group flex items-center gap-2 pl-4 pr-8 py-2 rounded-full cursor-pointer transition-all duration-200 border-2 ${selectedVoiceId === voice.id ? 'bg-cyan-500/20 border-cyan-500' : 'bg-white/5 border-transparent hover:border-gray-600'}`}
+                  className={`relative group flex items-center gap-2 pl-4 pr-8 py-2 rounded-full cursor-pointer transition-all duration-200 border-2 ${selectedVoiceId === voice.id ? 'bg-cyan-500/20 border-cyan-500' : 'bg-black/5 dark:bg-white/5 border-transparent hover:border-gray-300 dark:hover:border-gray-600'}`}
                 >
                   {voice.previewUrl && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handlePlayPreview(voice); }}
-                      className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                      className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-colors"
                       aria-label={`Preview ${voice.name}`}
                     >
                       {playingVoiceId === voice.id ? (
@@ -185,7 +185,7 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
                   <span className="font-medium">{voice.name}</span>
                   <button 
                     onClick={(e) => { e.stopPropagation(); handleRemoveVoice(voice.id); }} 
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-transparent text-gray-400 opacity-50 group-hover:opacity-100 group-hover:bg-red-500/50 group-hover:text-white transition-all"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-transparent text-gray-500 dark:text-gray-400 opacity-50 group-hover:opacity-100 group-hover:bg-red-500/50 group-hover:text-white transition-all"
                     aria-label={`Remove ${voice.name}`}
                   >
                       &times;
@@ -197,9 +197,9 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
 
         {/* Add Voice Section */}
         <div className="pt-4">
-              <label htmlFor="add-voice-input" className="block text-sm font-medium text-gray-400 mb-2">Add a Voice by ID</label>
+              <label htmlFor="add-voice-input" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Add a Voice by ID</label>
               <div className="flex gap-2">
-                  <input id="add-voice-input" type="text" value={newVoiceId} onChange={(e) => setNewVoiceId(e.target.value)} placeholder="Enter ElevenLabs Voice ID" className="flex-grow p-2 bg-[#0E1117] border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"/>
+                  <input id="add-voice-input" type="text" value={newVoiceId} onChange={(e) => setNewVoiceId(e.target.value)} placeholder="Enter ElevenLabs Voice ID" className="flex-grow p-2 bg-gray-50 dark:bg-[#0E1117] border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"/>
                   <Button onClick={handleAddManualVoice} className="px-4 py-2 w-24" disabled={isAddingVoice || !newVoiceId.trim()}>
                       {isAddingVoice ? <Spinner /> : 'Add'}
                   </Button>
@@ -209,8 +209,8 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
         
         {/* Settings Section */}
          {selectedVoiceForSettings ? (
-          <div key={selectedVoiceId} className="animate-fade-in pt-6 border-t border-white/10">
-            <h3 className="text-lg font-semibold mb-4 text-cyan-400">Settings for "{selectedVoiceForSettings.name}"</h3>
+          <div key={selectedVoiceId} className="animate-fade-in pt-6 border-t border-gray-200 dark:border-white/10">
+            <h3 className="text-lg font-semibold mb-4 text-cyan-600 dark:text-cyan-400">Settings for "{selectedVoiceForSettings.name}"</h3>
              {isLoadingSettings ? <div className="flex justify-center items-center h-48"><Spinner/></div> : 
              modelVoiceSettings.length > 0 ? (
               <div className="space-y-4">
@@ -234,7 +234,7 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
         ) : <div className="text-center text-gray-500 py-10">Select or add a voice to see settings.</div>}
       </div>
 
-      <div className="flex justify-between items-center mt-8 border-t border-white/10 pt-6">
+      <div className="flex justify-between items-center mt-8 border-t border-gray-200 dark:border-white/10 pt-6">
         <Button variant="secondary" onClick={onBack}>Back</Button>
         <Button onClick={onNext} disabled={!selectedVoiceId}>Generate Voiceover</Button>
       </div>

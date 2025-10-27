@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
@@ -40,7 +41,7 @@ export const Step3_ModelSelection: React.FC<Step3Props> = ({ models, selectedMod
   };
   
   if (isLoading) {
-      return <div className="flex flex-col items-center justify-center"><Spinner /><p className="mt-4 text-gray-400">Loading Models...</p></div>;
+      return <div className="flex flex-col items-center justify-center"><Spinner /><p className="mt-4 text-gray-600 dark:text-gray-400">Loading Models...</p></div>;
   }
 
   return (
@@ -50,17 +51,17 @@ export const Step3_ModelSelection: React.FC<Step3Props> = ({ models, selectedMod
       <div className="relative h-48 flex items-center justify-center">
         {models.length > 0 && (
           <div className="w-full max-w-md p-4">
-            <h3 className="text-xl font-semibold text-cyan-400">{models[currentIndex].name}</h3>
-            <p className="text-gray-400 mt-2 h-16">{models[currentIndex].description}</p>
+            <h3 className="text-xl font-semibold text-cyan-600 dark:text-cyan-400">{models[currentIndex].name}</h3>
+            <p className="text-gray-600 dark:text-gray-400 mt-2 h-16">{models[currentIndex].description}</p>
           </div>
         )}
         
         {models.length > 1 && (
             <>
-            <button onClick={handlePrev} className="absolute left-0 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20">
+            <button onClick={handlePrev} className="absolute left-0 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             </button>
-            <button onClick={handleNextCarousel} className="absolute right-0 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20">
+            <button onClick={handleNextCarousel} className="absolute right-0 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </button>
             </>
@@ -76,7 +77,7 @@ export const Step3_ModelSelection: React.FC<Step3Props> = ({ models, selectedMod
               setSelectedModelId(models[index].model_id);
             }}
             className={`w-3 h-3 rounded-full transition-colors ${
-              index === currentIndex ? 'bg-cyan-400' : 'bg-gray-600 hover:bg-gray-500'
+              index === currentIndex ? 'bg-cyan-500 dark:bg-cyan-400' : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
             }`}
           ></button>
         ))}
