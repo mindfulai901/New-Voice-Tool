@@ -70,20 +70,32 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ savedVoices, setSav
 
   const stopCurrentPreview = useCallback(() => {
     if (audioRef.current) {
+        // Detach handlers to prevent them firing on cleanup
+        audioRef.current.onended = null;
+        audioRef.current.onerror = null;
+        
         audioRef.current.pause();
-        audioRef.current.src = '';
+        // Revoke blob URL to prevent memory leaks
+        if (audioRef.current.src && audioRef.current.src.startsWith('blob:')) {
+            URL.revokeObjectURL(audioRef.current.src);
+        }
+        // Properly release the media resource
+        audioRef.current.removeAttribute('src');
+        audioRef.current.load();
     }
+    // Nullify the ref and reset state
     audioRef.current = null;
     setIsPlaying(false);
     setPreviewingVoiceId(null);
     setIsPreviewLoading(false);
   }, []);
 
+  // Cleanup effect to stop audio when the component unmounts
   useEffect(() => {
     return () => {
         stopCurrentPreview();
     };
-  }, [stopCurrentPreview, selectedVoiceId]);
+  }, [stopCurrentPreview]);
   
   const handleError = useCallback((err: unknown) => {
     const message = err instanceof Error ? err.message : 'An unknown error occurred.';

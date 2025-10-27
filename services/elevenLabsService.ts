@@ -48,7 +48,7 @@ export const getVoice = async (voiceId: string): Promise<Voice> => {
 
 // This can remain on the client as it's just static configuration data.
 const VOICE_SETTINGS: { [key: string]: VoiceSetting[] } = {
-  eleven_v3_alpha: [
+  eleven_english_v3: [
     { id: 'stability', name: 'Stability', type: 'slider', min: 0, max: 1, step: 0.5, defaultValue: 0.5 },
   ],
   eleven_multilingual_v2: [
