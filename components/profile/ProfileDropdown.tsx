@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useTheme } from '../../context/ThemeProvider';
 import type { Profile } from '../../types';
 
 interface ProfileDropdownProps {
@@ -10,7 +9,6 @@ interface ProfileDropdownProps {
 }
 
 export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ profile, onSignOut, onShowHistory, onShowAdvancedSettings }) => {
-  const { theme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -27,10 +25,6 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ profile, onSig
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const handleThemeChange = (newTheme: 'light' | 'dark') => {
-    setTheme(newTheme);
-  };
   
   const handleMenuClick = (action: () => void) => {
     action();
@@ -52,13 +46,6 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ profile, onSig
             <p className="font-semibold text-gray-800 dark:text-white truncate">{userName}</p>
           </div>
           <div className="p-2">
-             <div className="px-2 py-2">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">THEME</p>
-                <div className="flex items-center gap-2">
-                    <button onClick={() => handleThemeChange('light')} className={`w-1/2 py-1.5 text-sm rounded-md transition-colors ${theme === 'light' ? 'bg-cyan-500 text-white' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>Light</button>
-                    <button onClick={() => handleThemeChange('dark')} className={`w-1/2 py-1.5 text-sm rounded-md transition-colors ${theme === 'dark' ? 'bg-cyan-500 text-white' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>Dark</button>
-                </div>
-            </div>
             <button onClick={() => handleMenuClick(onShowHistory)} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md">
               Generation History
             </button>

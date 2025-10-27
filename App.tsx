@@ -27,6 +27,12 @@ import { Spinner } from './components/common/Spinner';
 import { UpdatePasswordModal } from './components/auth/UpdatePasswordModal';
 import { ProfileDropdown } from './components/profile/ProfileDropdown';
 import { AdvancedSettingsModal } from './components/profile/AdvancedSettingsModal';
+import { Footer } from './components/common/Footer';
+import { UserManual } from './components/pages/UserManual';
+import { PrivacyPolicy } from './components/pages/PrivacyPolicy';
+import { Contact } from './components/pages/Contact';
+
+export type AppView = 'app' | 'manual' | 'privacy' | 'contact';
 
 const App: React.FC = () => {
   const { session, user, loading: authLoading, isPasswordRecovery, clearPasswordRecoveryFlag, signOut } = useAuth();
@@ -114,6 +120,7 @@ const MainApp: React.FC<MainAppProps> = ({ userId }) => {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   
   // UI State
+  const [view, setView] = useState<AppView>('app');
   const [showHistory, setShowHistory] = useState(false);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
@@ -256,6 +263,7 @@ const MainApp: React.FC<MainAppProps> = ({ userId }) => {
     setGenerationProgress([]);
     setFinalAudios([]);
     setError(null);
+    setView('app');
   };
   
   const handleDeleteHistoryItems = async (itemsToDelete: HistoryItem[]) => {
@@ -409,9 +417,32 @@ const MainApp: React.FC<MainAppProps> = ({ userId }) => {
         return <div>Unknown Step</div>;
     }
   };
+  
+  const renderView = () => {
+    switch (view) {
+      case 'manual':
+        return <UserManual onBack={() => setView('app')} />;
+      case 'privacy':
+        return <PrivacyPolicy onBack={() => setView('app')} />;
+      case 'contact':
+        return <Contact onBack={() => setView('app')} />;
+      case 'app':
+      default:
+        return (
+          <>
+            <div className="mb-12">
+              <StepIndicator currentStep={currentStep} />
+            </div>
+            <div className="min-h-[450px] flex items-center justify-center">
+              {renderStep()}
+            </div>
+          </>
+        );
+    }
+  };
 
   return (
-    <div className="min-h-screen text-gray-900 dark:text-white flex flex-col items-center justify-start p-4 sm:p-8 bg-gray-50 dark:bg-[#0E1117]">
+    <div className="min-h-screen text-gray-900 dark:text-white flex flex-col items-center p-4 sm:p-8 bg-gray-50 dark:bg-[#0E1117]">
       {showHistory && (
           <HistoryPanel 
               items={historyItems}
@@ -423,15 +454,15 @@ const MainApp: React.FC<MainAppProps> = ({ userId }) => {
       {showAdvancedSettings && (
         <AdvancedSettingsModal onClose={() => setShowAdvancedSettings(false)} />
       )}
-      <div className="w-full max-w-5xl mx-auto">
+      <div className="w-full max-w-5xl mx-auto flex flex-col flex-grow">
         <header className="text-center mb-8 relative">
           <div className="flex justify-between items-center">
             <div className="w-24"></div> {/* Spacer */}
             <div className="flex-grow text-center">
-              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-r from-cyan-500 to-blue-600 dark:from-cyan-400 dark:to-blue-500 text-transparent bg-clip-text">
+              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-r from-cyan-500 to-blue-600 dark:from-cyan-400 dark:to-blue-500 text-transparent bg-clip-text cursor-pointer" onClick={restart}>
                 VoiceGen Pro
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-2 text-lg">High-Quality Voiceovers, Simplified.</p>
+              {view === 'app' && <p className="text-gray-600 dark:text-gray-400 mt-2 text-lg">High-Quality Voiceovers, Simplified.</p>}
             </div>
              <div className="w-24 flex justify-end">
                 <ProfileDropdown 
@@ -450,15 +481,11 @@ const MainApp: React.FC<MainAppProps> = ({ userId }) => {
            )}
         </header>
         
-        <main className="w-full">
-            <div className="mb-12">
-                <StepIndicator currentStep={currentStep} />
-            </div>
-            <div className="min-h-[450px] flex items-center justify-center">
-                {renderStep()}
-            </div>
+        <main className="w-full flex-grow">
+            {renderView()}
         </main>
       </div>
+      <Footer setView={setView} />
     </div>
   );
 }
