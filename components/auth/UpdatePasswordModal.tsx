@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { Button } from '../common/Button';
@@ -40,14 +39,20 @@ export const UpdatePasswordModal: React.FC<UpdatePasswordModalProps> = ({ onUpda
     try {
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) throw updateError;
-      setMessage('Password updated successfully!');
+      
+      // Sign out to invalidate the recovery session.
+      await supabase.auth.signOut();
+      
+      setMessage('Your password has been updated successfully. Please log in again.');
+      
+      // Give the user time to read the message before closing the modal.
       setTimeout(() => {
         onUpdated();
-      }, 1500);
+      }, 3000);
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update password.');
-    } finally {
-      setLoading(false);
+      setLoading(false); // Only set loading false on error, success will unmount
     }
   };
 
@@ -58,6 +63,7 @@ export const UpdatePasswordModal: React.FC<UpdatePasswordModalProps> = ({ onUpda
           onClick={onCancel}
           className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors text-2xl"
           aria-label="Close"
+          disabled={loading}
         >
           &times;
         </button>

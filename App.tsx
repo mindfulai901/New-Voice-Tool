@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   AppStep,
@@ -29,28 +28,17 @@ import { Button } from './components/common/Button';
 import { UpdatePasswordModal } from './components/auth/UpdatePasswordModal';
 
 const App: React.FC = () => {
-  const { session, user, loading: authLoading, isPasswordRecovery, clearPasswordRecoveryFlag } = useAuth();
+  const { session, user, loading: authLoading, isPasswordRecovery, clearPasswordRecoveryFlag, signOut } = useAuth();
   
-  // Password Recovery State is managed at the top level
-  const [showUpdatePasswordModal, setShowUpdatePasswordModal] = useState(false);
-  const [passwordUpdateMessage, setPasswordUpdateMessage] = useState('');
-
-  useEffect(() => {
-    if (isPasswordRecovery) {
-      setShowUpdatePasswordModal(true);
-    }
-  }, [isPasswordRecovery]);
-
   const handlePasswordUpdated = () => {
-    setShowUpdatePasswordModal(false);
+    // The user has been signed out by the modal.
+    // Clearing the flag will cause a re-render, and the app will show the LandingPage.
     clearPasswordRecoveryFlag();
-    setPasswordUpdateMessage('Your password has been updated successfully!');
-    setTimeout(() => setPasswordUpdateMessage(''), 5000);
   };
   
-  const handleCancelPasswordUpdate = () => {
-    setShowUpdatePasswordModal(false);
+  const handleCancelPasswordUpdate = async () => {
     clearPasswordRecoveryFlag();
+    await signOut(); // Sign out to invalidate the recovery session
   };
 
   if (authLoading) {
@@ -67,7 +55,7 @@ const App: React.FC = () => {
       );
   }
 
-  if (!supabase) {
+  if (supabaseError) {
     return (
       <div className="min-h-screen text-white flex flex-col items-center justify-center p-4 bg-[#0E1117]">
         <header className="text-center mb-8">
@@ -85,27 +73,25 @@ const App: React.FC = () => {
       </div>
     );
   }
+  
+  // If the auth state is PASSWORD_RECOVERY, exclusively show the update modal.
+  if (isPasswordRecovery) {
+    return <UpdatePasswordModal onUpdated={handlePasswordUpdated} onCancel={handleCancelPasswordUpdate} />;
+  }
 
-  return (
-    <>
-      {showUpdatePasswordModal && <UpdatePasswordModal onUpdated={handlePasswordUpdated} onCancel={handleCancelPasswordUpdate} />}
-      
-      {(!session || !user) ? (
-        <LandingPage />
-      ) : (
-        <MainApp userId={user.id} passwordUpdateMessage={passwordUpdateMessage} setPasswordUpdateMessage={setPasswordUpdateMessage} />
-      )}
-    </>
-  );
+  // Otherwise, proceed with the normal flow.
+  if (!session || !user) {
+    return <LandingPage />;
+  }
+  
+  return <MainApp userId={user.id} />;
 };
 
 interface MainAppProps {
   userId: string;
-  passwordUpdateMessage: string;
-  setPasswordUpdateMessage: (message: string) => void;
 }
 
-const MainApp: React.FC<MainAppProps> = ({ userId, passwordUpdateMessage, setPasswordUpdateMessage }) => {
+const MainApp: React.FC<MainAppProps> = ({ userId }) => {
   const { signOut } = useAuth();
   const [currentStep, setCurrentStep] = useState<AppStep>(AppStep.InputType);
   const [inputMode, setInputMode] = useState<InputMode>(null);
@@ -453,12 +439,6 @@ const MainApp: React.FC<MainAppProps> = ({ userId, passwordUpdateMessage, setPas
               <button onClick={() => setError(null)} className="font-bold text-xl">&times;</button>
             </div>
            )}
-            {passwordUpdateMessage && (
-              <div className="mt-4 p-3 bg-green-500/20 border border-green-500 text-green-300 rounded-lg animate-fade-in flex justify-between items-center">
-                  <span>{passwordUpdateMessage}</span>
-                  <button onClick={() => setPasswordUpdateMessage('')} className="font-bold text-xl">&times;</button>
-              </div>
-            )}
         </header>
         
         <main className="w-full">

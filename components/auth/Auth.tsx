@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { Button } from '../common/Button';
@@ -31,10 +30,10 @@ export const Auth: React.FC = () => {
         const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
         if (signUpError) throw signUpError;
         
-        // Heuristic check: If the user was created more than a minute ago,
-        // they likely already existed. Supabase doesn't error on this for security reasons.
-        if (data.user && (new Date().getTime() - new Date(data.user.created_at).getTime()) > 60000) {
-            setError('An account with this email already exists. Please sign in or use a different email.');
+        // If the user object is returned and the email is already confirmed,
+        // it signifies that the account already exists.
+        if (data.user && data.user.email_confirmed_at) {
+            setError('An account with this email already exists. Please log in instead.');
         } else {
             setMessage('Success! Please check your email for a confirmation link.');
         }
