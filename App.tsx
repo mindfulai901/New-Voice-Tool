@@ -121,7 +121,7 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
       // Fetch saved voices
       const { data: voices, error: voicesError } = await supabase
         .from('voices')
-        .select('id:voice_id, name')
+        .select('id:voice_id, name, previewUrl:preview_url')
         .eq('user_id', userId);
 
       if (voicesError && !error) { 

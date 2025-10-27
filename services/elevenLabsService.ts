@@ -43,7 +43,7 @@ export const getModels = async (): Promise<ElevenLabsModel[]> => {
 export const getVoice = async (voiceId: string): Promise<Voice> => {
     const response = await fetchApi(`/api/get-voice?voiceId=${voiceId}`);
     const data = await response.json();
-    return { id: data.voice_id, name: data.name };
+    return { id: data.voice_id, name: data.name, previewUrl: data.preview_url };
 };
 
 // This can remain on the client as it's just static configuration data.

@@ -29,6 +29,25 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
   const [addVoiceError, setAddVoiceError] = useState<string | null>(null);
   const [isAddingVoice, setIsAddingVoice] = useState(false);
 
+  // State for audio preview
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Setup audio element and event listener for seamless playback control
+    const audioEl = new Audio();
+    const onEnded = () => setPlayingVoiceId(null);
+    audioEl.addEventListener('ended', onEnded);
+    setAudio(audioEl);
+
+    // Cleanup audio element and listeners on component unmount
+    return () => {
+      audioEl.removeEventListener('ended', onEnded);
+      audioEl.pause();
+      setAudio(null);
+    };
+  }, []);
+
   useEffect(() => {
     const fetchAndInitializeSettings = async () => {
       if (model) {
@@ -66,6 +85,19 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
     setError(context ? `${context} ${message}` : message);
   }, []);
   
+  const handlePlayPreview = (voice: Voice) => {
+    if (!audio || !voice.previewUrl) return;
+
+    if (playingVoiceId === voice.id) {
+      audio.pause();
+      setPlayingVoiceId(null);
+    } else {
+      audio.src = voice.previewUrl;
+      audio.play();
+      setPlayingVoiceId(voice.id);
+    }
+  };
+
   const handleAddManualVoice = async () => {
     if (!newVoiceId.trim() || !userId) return;
 
@@ -81,8 +113,8 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
         
         const { data, error: dbError } = await supabase
           .from('voices')
-          .insert({ voice_id: voiceDetails.id, name: voiceDetails.name, user_id: userId })
-          .select('id:voice_id, name')
+          .insert({ voice_id: voiceDetails.id, name: voiceDetails.name, user_id: userId, preview_url: voiceDetails.previewUrl })
+          .select('id:voice_id, name, previewUrl:preview_url')
           .single();
 
         if (dbError) throw dbError;
@@ -135,8 +167,21 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
                 <div
                   key={voice.id}
                   onClick={() => setSelectedVoiceId(voice.id)}
-                  className={`relative group pl-4 pr-8 py-2 rounded-full cursor-pointer transition-all duration-200 border-2 ${selectedVoiceId === voice.id ? 'bg-cyan-500/20 border-cyan-500' : 'bg-white/5 border-transparent hover:border-gray-600'}`}
+                  className={`relative group flex items-center gap-2 pl-4 pr-8 py-2 rounded-full cursor-pointer transition-all duration-200 border-2 ${selectedVoiceId === voice.id ? 'bg-cyan-500/20 border-cyan-500' : 'bg-white/5 border-transparent hover:border-gray-600'}`}
                 >
+                  {voice.previewUrl && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handlePlayPreview(voice); }}
+                      className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                      aria-label={`Preview ${voice.name}`}
+                    >
+                      {playingVoiceId === voice.id ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
+                      )}
+                    </button>
+                  )}
                   <span className="font-medium">{voice.name}</span>
                   <button 
                     onClick={(e) => { e.stopPropagation(); handleRemoveVoice(voice.id); }} 

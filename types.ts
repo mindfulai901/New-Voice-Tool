@@ -45,6 +45,7 @@ export interface VoiceSetting {
 export interface Voice {
   id: string;
   name: string;
+  previewUrl?: string;
 }
 
 export type VoiceSettingsValues = {
