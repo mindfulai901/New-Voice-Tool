@@ -9,6 +9,7 @@ import {
   GenerationProgress,
   FinalAudio,
   AllVoiceSettings,
+  HistoryItem,
 } from './types';
 import { supabase, supabaseError } from './services/supabaseClient';
 import { getModels, generateVoiceoverChunk } from './services/elevenLabsService';
@@ -19,10 +20,10 @@ import { Step3_ModelSelection } from './components/steps/Step3_ModelSelection';
 import { Step4_VoiceSelection } from './components/steps/Step4_VoiceSelection';
 import { Step5_Generation } from './components/steps/Step5_Generation';
 import { Step6_Output } from './components/steps/Step6_Output';
+import { HistoryPanel } from './components/history/HistoryPanel';
 import { useAuth } from './components/auth/AuthProvider';
 import { LandingPage } from './components/LandingPage';
 import { Spinner } from './components/common/Spinner';
-// FIX: Add missing import for Button component
 import { Button } from './components/common/Button';
 
 const App: React.FC = () => {
@@ -88,27 +89,71 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
   const [isModelsLoading, setIsModelsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
+  // History State
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
   const selectedModel = useMemo(() => models.find(m => m.model_id === selectedModelId), [models, selectedModelId]);
 
-  // Derived state for the current model's voice settings
   const currentVoiceSettings = useMemo(() => {
     if (!selectedModelId) return {};
     return allVoiceSettings[selectedModelId] || {};
   }, [allVoiceSettings, selectedModelId]);
 
-  // Fetch initial state from Supabase
+  const fetchHistory = useCallback(async () => {
+    if (!userId || !supabase) return;
+    setIsHistoryLoading(true);
+    setError(null);
+    try {
+        const { data, error: dbError } = await supabase
+            .from('generated_audio')
+            .select(`
+                id,
+                created_at,
+                script_name,
+                audio_url,
+                scripts ( content )
+            `)
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (dbError) throw dbError;
+
+        const items: HistoryItem[] = data.map((item: any) => {
+            const url = new URL(item.audio_url);
+            const filePath = url.pathname.split('/public/audio_files/')[1];
+            return {
+                id: item.id,
+                scriptName: item.script_name,
+                audioUrl: item.audio_url,
+                createdAt: item.created_at,
+                scriptContent: item.scripts?.content || 'Original script not found.',
+                filePath: filePath,
+            };
+        });
+        setHistoryItems(items);
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "Could not load generation history.";
+        console.error("History fetch error:", err);
+        setError(message);
+    } finally {
+        setIsHistoryLoading(false);
+    }
+  }, [userId, supabase]);
+
   useEffect(() => {
     const fetchInitialData = async () => {
       if (!userId) return;
-      // Fetch user preferences
+      
       const { data: prefs, error: prefsError } = await supabase
         .from('user_preferences')
         .select('*')
         .eq('user_id', userId)
         .single();
 
-      if (prefsError && prefsError.code !== 'PGRST116') { // Ignore 'range not found' error for new users
+      if (prefsError && prefsError.code !== 'PGRST116') {
         console.error('Error fetching user preferences:', prefsError);
         setError(`Database Error: ${prefsError.message}`);
       } else if (prefs) {
@@ -118,32 +163,26 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
         setAllVoiceSettings(prefs.voice_settings || {});
       }
 
-      // Fetch saved voices
       const { data: voices, error: voicesError } = await supabase
         .from('voices')
-        .select('*') // More robust: select all available columns
+        .select('*')
         .eq('user_id', userId);
 
       if (voicesError && !error) { 
         console.error('Error fetching voices:', voicesError);
         setError('Could not load saved voices from the database.');
       } else if (voices) {
-        // Map to our Voice type, safely handling the optional previewUrl
-        const mappedVoices = voices.map(v => ({
-            id: v.voice_id,
-            name: v.name,
-            previewUrl: v.preview_url ?? undefined,
-        }));
+        const mappedVoices = voices.map(v => ({ id: v.voice_id, name: v.name, previewUrl: v.preview_url ?? undefined }));
         setSavedVoices(mappedVoices);
       }
       
+      await fetchHistory();
       setIsInitialLoad(false);
     };
 
     fetchInitialData();
-  }, [userId, error]);
+  }, [userId, error, fetchHistory]);
 
-  // Fetch models from ElevenLabs via our serverless function
   useEffect(() => {
     const fetchModels = async () => {
       try {
@@ -164,7 +203,6 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
     fetchModels();
   }, [selectedModelId]);
 
-  // Persist settings changes to Supabase
   const updatePreference = useCallback(async (updates: Partial<{ [key: string]: any }>) => {
       if (!userId) return;
       const { error: dbError } = await supabase
@@ -179,14 +217,10 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
 
   const handleSettingsUpdate = useCallback((newSettingsForCurrentModel: VoiceSettingsValues) => {
     if (!selectedModelId) return;
-    const newAllSettings = {
-      ...allVoiceSettings,
-      [selectedModelId]: newSettingsForCurrentModel,
-    };
+    const newAllSettings = { ...allVoiceSettings, [selectedModelId]: newSettingsForCurrentModel };
     setAllVoiceSettings(newAllSettings);
     updatePreference({ voice_settings: newAllSettings });
   }, [selectedModelId, allVoiceSettings, updatePreference]);
-
 
   const handleNext = () => setCurrentStep(prev => Math.min(prev + 1, 6));
   const handleBack = () => setCurrentStep(prev => Math.max(prev - 1, 1));
@@ -199,6 +233,31 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
     setFinalAudios([]);
     setError(null);
   };
+  
+  const handleDeleteHistoryItems = async (itemsToDelete: HistoryItem[]) => {
+    if (!itemsToDelete.length || !supabase) return;
+
+    const itemIds = itemsToDelete.map(item => item.id);
+    const filePaths = itemsToDelete.map(item => item.filePath);
+
+    try {
+        // 1. Delete files from storage
+        const { error: storageError } = await supabase.storage.from('audio_files').remove(filePaths);
+        if (storageError) throw storageError;
+
+        // 2. Delete records from database
+        const { error: dbError } = await supabase.from('generated_audio').delete().in('id', itemIds);
+        if (dbError) throw dbError;
+
+        // 3. Update local state
+        setHistoryItems(prev => prev.filter(item => !itemIds.includes(item.id)));
+
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to delete history items.";
+        console.error("Delete history error:", err);
+        setError(message);
+    }
+  };
 
   const handleStartGeneration = useCallback(async () => {
     if (!scripts.length || !selectedVoiceId || !selectedModelId || !userId) {
@@ -210,13 +269,7 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
     setFinalAudios([]);
     setError(null);
 
-    const initialProgress = scripts.map(script => ({
-      scriptId: script.id,
-      scriptName: script.name,
-      totalChunks: 0,
-      completedChunks: 0,
-      status: 'processing' as const,
-    }));
+    const initialProgress = scripts.map(script => ({ scriptId: script.id, scriptName: script.name, totalChunks: 0, completedChunks: 0, status: 'processing' as const }));
     setGenerationProgress(initialProgress);
 
     for (const script of scripts) {
@@ -250,25 +303,13 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
             const stitchedBlob = new Blob(audioBlobs, { type: 'audio/mpeg' });
             const filePath = `${userId}/${script.id}_${Date.now()}.mp3`;
 
-            // Upload to Supabase Storage
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('audio_files')
-                .upload(filePath, stitchedBlob);
-
+            const { data: uploadData, error: uploadError } = await supabase.storage.from('audio_files').upload(filePath, stitchedBlob);
             if (uploadError) throw uploadError;
 
-            // Get public URL
-            const { data: urlData } = supabase.storage
-                .from('audio_files')
-                .getPublicUrl(uploadData.path);
-            
+            const { data: urlData } = supabase.storage.from('audio_files').getPublicUrl(uploadData.path);
             const publicUrl = urlData.publicUrl;
 
-            // Save to generated_audio table
-            const { error: dbError } = await supabase
-              .from('generated_audio')
-              .insert({ script_name: script.name, audio_url: publicUrl, script_id: script.id, user_id: userId });
-
+            const { error: dbError } = await supabase.from('generated_audio').insert({ script_name: script.name, audio_url: publicUrl, script_id: script.id, user_id: userId });
             if (dbError) throw dbError;
 
             setFinalAudios(prev => [...prev, { scriptId: script.id, scriptName: script.name, url: publicUrl }]);
@@ -281,7 +322,8 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
         }
       }
     }
-  }, [scripts, selectedVoiceId, paragraphsPerChunk, selectedModelId, currentVoiceSettings, userId, supabase]);
+    await fetchHistory(); // Refresh history after generation completes
+  }, [scripts, selectedVoiceId, paragraphsPerChunk, selectedModelId, currentVoiceSettings, userId, supabase, fetchHistory]);
 
   if (isInitialLoad) {
       return (
@@ -296,7 +338,6 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
         </div>
       );
   }
-
 
   const renderStep = () => {
     switch (currentStep) {
@@ -319,6 +360,14 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
 
   return (
     <div className="min-h-screen text-white flex flex-col items-center justify-start p-4 sm:p-8 bg-[#0E1117]">
+      {showHistory && (
+          <HistoryPanel 
+              items={historyItems}
+              isLoading={isHistoryLoading}
+              onClose={() => setShowHistory(false)}
+              onDelete={handleDeleteHistoryItems}
+          />
+      )}
       <div className="w-full max-w-5xl mx-auto">
         <header className="text-center mb-8 relative">
           <div className="flex justify-between items-center">
@@ -329,7 +378,10 @@ const MainApp: React.FC<{userId: string}> = ({ userId }) => {
               </h1>
               <p className="text-gray-400 mt-2 text-lg">High-Quality Voiceovers, Simplified.</p>
             </div>
-            <Button variant="secondary" onClick={signOut} className="!px-4 !py-2">Logout</Button>
+             <div className="flex items-center gap-2">
+                <Button variant="secondary" onClick={() => setShowHistory(true)} className="!px-4 !py-2">History</Button>
+                <Button variant="secondary" onClick={signOut} className="!px-4 !py-2">Logout</Button>
+             </div>
           </div>
            {error && (
             <div className="mt-4 p-3 bg-red-500/20 border border-red-500 text-red-300 rounded-lg animate-fade-in flex justify-between items-center">

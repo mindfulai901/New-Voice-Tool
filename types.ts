@@ -70,3 +70,12 @@ export interface FinalAudio {
   scriptName: string;
   url: string;
 }
+
+export interface HistoryItem {
+  id: number; // The id from the generated_audio table
+  scriptName: string;
+  audioUrl: string;
+  scriptContent: string;
+  createdAt: string;
+  filePath: string; // The path in Supabase storage
+}
