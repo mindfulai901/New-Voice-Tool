@@ -9,6 +9,7 @@ interface AdvancedSettingsModalProps {
 }
 
 export const AdvancedSettingsModal: React.FC<AdvancedSettingsModalProps> = ({ onClose }) => {
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,6 +46,7 @@ export const AdvancedSettingsModal: React.FC<AdvancedSettingsModalProps> = ({ on
       setMessage('Your password has been updated successfully.');
       setPassword('');
       setConfirmPassword('');
+      setShowPasswordForm(false);
       setTimeout(() => setMessage(''), 3000);
 
     } catch (err) {
@@ -72,7 +74,15 @@ export const AdvancedSettingsModal: React.FC<AdvancedSettingsModalProps> = ({ on
         onClose();
 
     } catch (err) {
-        setError(err instanceof Error ? `Failed to delete account: ${err.message}` : 'An unknown error occurred.');
+        let friendlyError = 'An unknown error occurred while deleting the account.';
+        if (err instanceof Error) {
+            if (err.message.includes('function public.delete_user_account() does not exist')) {
+                friendlyError = 'Account deletion is not configured on the backend. The required database function is missing.';
+            } else {
+                friendlyError = `Failed to delete account: ${err.message}`;
+            }
+        }
+        setError(friendlyError);
         setDeleteLoading(false);
     }
   };
@@ -96,31 +106,43 @@ export const AdvancedSettingsModal: React.FC<AdvancedSettingsModalProps> = ({ on
               {/* Change Password Section */}
               <section className="mb-8">
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">Change Password</h3>
-                  <form onSubmit={handleUpdatePassword} className="space-y-4">
-                      <div>
-                          <label htmlFor="new-password-adv"className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">New Password</label>
-                          <input
-                              id="new-password-adv" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                              required minLength={6}
-                              className="w-full p-3 bg-gray-50 dark:bg-[#0E1117] border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
-                              placeholder="••••••••"
-                          />
-                      </div>
-                      <div>
-                          <label htmlFor="confirm-password-adv"className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">Confirm New Password</label>
-                          <input
-                              id="confirm-password-adv" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                              required minLength={6}
-                              className="w-full p-3 bg-gray-50 dark:bg-[#0E1117] border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
-                              placeholder="••••••••"
-                          />
-                      </div>
-                      <div className="text-right">
-                          <Button type="submit" className="!py-2 !px-4" disabled={loading}>
-                              {loading ? <Spinner /> : 'Update Password'}
-                          </Button>
-                      </div>
-                  </form>
+                  {showPasswordForm ? (
+                    <form onSubmit={handleUpdatePassword} className="space-y-4 animate-fade-in">
+                        <div>
+                            <label htmlFor="new-password-adv"className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">New Password</label>
+                            <input
+                                id="new-password-adv" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                                required minLength={6}
+                                className="w-full p-3 bg-gray-50 dark:bg-[#0E1117] border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                                placeholder="••••••••"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="confirm-password-adv"className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">Confirm New Password</label>
+                            <input
+                                id="confirm-password-adv" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                                required minLength={6}
+                                className="w-full p-3 bg-gray-50 dark:bg-[#0E1117] border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                                placeholder="••••••••"
+                            />
+                        </div>
+                        <div className="flex justify-end gap-4">
+                            <Button variant="secondary" type="button" onClick={() => { setShowPasswordForm(false); setError(''); setMessage(''); }} disabled={loading}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" className="!py-2 !px-4" disabled={loading}>
+                                {loading ? <Spinner /> : 'Update Password'}
+                            </Button>
+                        </div>
+                    </form>
+                  ) : (
+                    <div className="p-4 bg-gray-100 dark:bg-white/5 rounded-lg flex items-center justify-between">
+                        <p className="text-sm text-gray-600 dark:text-gray-300">Update the password for your account.</p>
+                        <Button onClick={() => setShowPasswordForm(true)} className="!py-2 !px-4">
+                            Change
+                        </Button>
+                    </div>
+                  )}
               </section>
 
               {/* Delete Account Section */}

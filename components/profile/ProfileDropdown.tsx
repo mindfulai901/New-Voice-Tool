@@ -41,7 +41,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ profile, onSig
     <div className="relative" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)} 
-        className="flex items-center justify-center w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full text-cyan-600 dark:text-cyan-400 font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-800"
+        className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full text-white font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 focus:ring-offset-gray-100 dark:focus:ring-offset-[#0E1117]"
       >
         {userInitials}
       </button>
@@ -56,8 +56,8 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ profile, onSig
              <div className="px-2 py-2">
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">THEME</p>
                 <div className="flex items-center gap-2">
-                    <button onClick={() => handleThemeChange('light')} className={`w-1/2 py-1.5 text-sm rounded-md ${theme === 'light' ? 'bg-cyan-500 text-white' : 'bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500'}`}>Light</button>
-                    <button onClick={() => handleThemeChange('dark')} className={`w-1/2 py-1.5 text-sm rounded-md ${theme === 'dark' ? 'bg-cyan-500 text-white' : 'bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500'}`}>Dark</button>
+                    <button onClick={() => handleThemeChange('light')} className={`w-1/2 py-1.5 text-sm rounded-md transition-colors ${theme === 'light' ? 'bg-cyan-500 text-white' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>Light</button>
+                    <button onClick={() => handleThemeChange('dark')} className={`w-1/2 py-1.5 text-sm rounded-md transition-colors ${theme === 'dark' ? 'bg-cyan-500 text-white' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>Dark</button>
                 </div>
             </div>
             <button onClick={() => handleMenuClick(onShowHistory)} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md">
