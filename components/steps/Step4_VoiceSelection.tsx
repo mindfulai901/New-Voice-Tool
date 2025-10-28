@@ -111,7 +111,7 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
     try {
         const voiceDetails = await getVoice(newVoiceId.trim());
         
-        // Attempt to save with the preview URL first
+        // Attempt to save with the preview URL first. This supports newer database schemas.
         const { error: dbError } = await supabase
           .from('voices')
           .insert({ 
@@ -121,30 +121,33 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
             preview_url: voiceDetails.previewUrl
           });
 
-        if (dbError) {
-            // The PostgreSQL error code for an undefined column is '42703'
-            if (dbError.code === '42703' && dbError.message.includes('preview_url')) {
-                console.warn('Attempting to add voice without preview_url due to a likely schema mismatch.');
-                // If it fails because the column doesn't exist, retry without it
-                const { error: retryError } = await supabase
-                  .from('voices')
-                  .insert({ 
-                    voice_id: voiceDetails.id, 
-                    name: voiceDetails.name, 
-                    user_id: userId,
-                  });
-                
-                if (retryError) throw retryError; // If the retry fails, throw that error
+        // Check if the error is specifically about the missing 'preview_url' column.
+        const isMissingColumnError = dbError && dbError.message.includes('preview_url') && 
+                                     (dbError.message.includes('does not exist') || 
+                                      dbError.message.includes('Could not find'));
 
-                // On successful retry, update state but without the previewUrl
-                setSavedVoices(prev => [...prev, { ...voiceDetails, previewUrl: undefined }]);
-
-            } else {
-                // It was a different database error
-                throw dbError;
+        if (isMissingColumnError) {
+            console.warn("Database schema mismatch: 'preview_url' column not found. Retrying without it.");
+            // If the insert failed due to the missing column, retry without it for backward compatibility.
+            const { error: retryError } = await supabase
+              .from('voices')
+              .insert({ 
+                voice_id: voiceDetails.id, 
+                name: voiceDetails.name, 
+                user_id: userId,
+              });
+            
+            if (retryError) {
+                // If the fallback also fails, throw that error.
+                throw retryError; 
             }
+            // On successful retry, update state but without the previewUrl.
+            setSavedVoices(prev => [...prev, { ...voiceDetails, previewUrl: undefined }]);
+        } else if (dbError) {
+            // It was a different, unexpected database error.
+            throw dbError;
         } else {
-            // The first insert was successful
+            // The initial insert was successful.
             setSavedVoices(prev => [...prev, voiceDetails]);
         }
         
@@ -153,11 +156,12 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
 
     } catch (err) {
         let errorMessage = 'Failed to find or save voice. Please check the Voice ID.';
+        // This logic handles API errors from getVoice() and DB errors from insert().
         if (err instanceof Error) {
             errorMessage = err.message;
         } else if (err && typeof err === 'object' && 'message' in err) {
-            // Handles Supabase's PostgrestError object and other similar error shapes.
-            errorMessage = `An error occurred: ${(err as { message: string }).message}`;
+            // Handles Supabase's PostgrestError object
+            errorMessage = (err as { message: string }).message;
         }
         setAddVoiceError(errorMessage);
     } finally {
