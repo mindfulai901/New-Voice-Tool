@@ -48,6 +48,11 @@ export const getModels = async (): Promise<ElevenLabsModel[]> => {
 export const getVoice = async (voiceId: string): Promise<Voice> => {
     const response = await fetchApi(`/api/get-voice?voiceId=${voiceId}`);
     const data = await response.json();
+    // Add validation to ensure the API returned the expected voice object structure.
+    if (!data || !data.voice_id || !data.name) {
+        // This can happen if the API returns a 200 OK but with an empty or malformed body.
+        throw new Error('API returned invalid data for the voice ID. Please ensure the ID is correct.');
+    }
     return { id: data.voice_id, name: data.name, previewUrl: data.preview_url };
 };
 
