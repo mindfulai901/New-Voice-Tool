@@ -1,3 +1,4 @@
+
 import type { ElevenLabsModel, VoiceSetting, Voice, VoiceSettingsValues } from '../types';
 
 // --- PROXY API FUNCTIONS ---
@@ -29,8 +30,12 @@ async function fetchApi(url: string, options?: RequestInit): Promise<Response> {
             // This suggests a network error or that the API endpoint doesn't exist/is misconfigured
             throw new Error('Network error: Could not connect to the API. Please check your connection.');
         }
-        // Re-throw other errors (like the ones we threw above)
-        throw error;
+        // Ensure we always throw a proper Error object.
+        if (error instanceof Error) {
+            throw error;
+        }
+        // If the caught item is not an error (e.g., a string was thrown), wrap it.
+        throw new Error(String(error) || 'An unknown API error occurred.');
     }
 }
 
