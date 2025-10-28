@@ -99,7 +99,7 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
   };
 
   const handleAddManualVoice = async () => {
-    if (!newVoiceId.trim() || !userId) return;
+    if (!newVoiceId.trim() || !userId || !supabase) return;
 
     if (savedVoices.some(v => v.id === newVoiceId.trim())) {
         setAddVoiceError('This voice is already saved.');
@@ -111,31 +111,62 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
     try {
         const voiceDetails = await getVoice(newVoiceId.trim());
         
-        // Save the voice with its preview URL to the database.
+        // Attempt to save with the preview URL first
         const { error: dbError } = await supabase
           .from('voices')
           .insert({ 
             voice_id: voiceDetails.id, 
             name: voiceDetails.name, 
             user_id: userId,
-            preview_url: voiceDetails.previewUrl // Save the preview URL
+            preview_url: voiceDetails.previewUrl
           });
 
-        if (dbError) throw dbError;
+        if (dbError) {
+            // The PostgreSQL error code for an undefined column is '42703'
+            if (dbError.code === '42703' && dbError.message.includes('preview_url')) {
+                console.warn('Attempting to add voice without preview_url due to a likely schema mismatch.');
+                // If it fails because the column doesn't exist, retry without it
+                const { error: retryError } = await supabase
+                  .from('voices')
+                  .insert({ 
+                    voice_id: voiceDetails.id, 
+                    name: voiceDetails.name, 
+                    user_id: userId,
+                  });
+                
+                if (retryError) throw retryError; // If the retry fails, throw that error
 
-        // For the current session, add the full voice details (including preview) to state
-        setSavedVoices(prev => [...prev, voiceDetails]);
+                // On successful retry, update state but without the previewUrl
+                setSavedVoices(prev => [...prev, { ...voiceDetails, previewUrl: undefined }]);
+
+            } else {
+                // It was a different database error
+                throw dbError;
+            }
+        } else {
+            // The first insert was successful
+            setSavedVoices(prev => [...prev, voiceDetails]);
+        }
+        
         setSelectedVoiceId(voiceDetails.id);
         setNewVoiceId('');
 
     } catch (err) {
-        setAddVoiceError(err instanceof Error ? err.message : 'Failed to find or save voice. Please check the Voice ID.');
+        let errorMessage = 'Failed to find or save voice. Please check the Voice ID.';
+        if (err instanceof Error) {
+            errorMessage = err.message;
+        } else if (err && typeof err === 'object' && 'message' in err) {
+            // Handles Supabase's PostgrestError object and other similar error shapes.
+            errorMessage = `An error occurred: ${(err as { message: string }).message}`;
+        }
+        setAddVoiceError(errorMessage);
     } finally {
         setIsAddingVoice(false);
     }
   };
   
   const handleRemoveVoice = async (idToRemove: string) => {
+    if (!supabase) return;
     try {
       const { error: dbError } = await supabase.from('voices').delete().eq('voice_id', idToRemove).eq('user_id', userId);
       if (dbError) throw dbError;
