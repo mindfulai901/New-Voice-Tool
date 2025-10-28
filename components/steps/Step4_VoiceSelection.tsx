@@ -111,10 +111,15 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
     try {
         const voiceDetails = await getVoice(newVoiceId.trim());
         
-        // Insert basic voice info, omitting preview_url to avoid DB errors if column doesn't exist
+        // Save the voice with its preview URL to the database.
         const { error: dbError } = await supabase
           .from('voices')
-          .insert({ voice_id: voiceDetails.id, name: voiceDetails.name, user_id: userId });
+          .insert({ 
+            voice_id: voiceDetails.id, 
+            name: voiceDetails.name, 
+            user_id: userId,
+            preview_url: voiceDetails.previewUrl // Save the preview URL
+          });
 
         if (dbError) throw dbError;
 
@@ -166,7 +171,11 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
               ) : savedVoices.map(voice => (
                 <div
                   key={voice.id}
-                  onClick={() => setSelectedVoiceId(voice.id)}
+                  onClick={() => {
+                    setSelectedVoiceId(voice.id);
+                    setNewVoiceId(voice.id);
+                    setAddVoiceError(null); // Clear any errors when selecting a valid voice
+                  }}
                   className={`relative group flex items-center gap-2 pl-4 pr-8 py-2 rounded-full cursor-pointer transition-all duration-200 border-2 ${selectedVoiceId === voice.id ? 'bg-cyan-500/20 border-cyan-500' : 'bg-black/5 dark:bg-white/5 border-transparent hover:border-gray-300 dark:hover:border-gray-600'}`}
                 >
                   {voice.previewUrl && (
@@ -197,7 +206,7 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
 
         {/* Add Voice Section */}
         <div className="pt-4">
-              <label htmlFor="add-voice-input" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Add a Voice by ID</label>
+              <label htmlFor="add-voice-input" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Add or Select a Voice by ID</label>
               <div className="flex gap-2">
                   <input id="add-voice-input" type="text" value={newVoiceId} onChange={(e) => setNewVoiceId(e.target.value)} placeholder="Enter ElevenLabs Voice ID" className="flex-grow p-2 bg-gray-50 dark:bg-[#0E1117] border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"/>
                   <Button onClick={handleAddManualVoice} className="px-4 py-2 w-24" disabled={isAddingVoice || !newVoiceId.trim()}>
