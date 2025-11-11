@@ -4,7 +4,7 @@ import { Card } from '../common/Card';
 import { Slider } from '../common/Slider';
 import { Toggle } from '../common/Toggle';
 import { Spinner } from '../common/Spinner';
-import type { ElevenLabsModel, Voice, VoiceSettingsValues, VoiceSetting } from '../../types';
+import type { ElevenLabsModel, Voice, VoiceSettingsValues, VoiceSetting, AllVoiceSettings } from '../../types';
 import { getVoiceSettingsForModel, getVoice } from '../../services/elevenLabsService';
 import { supabase } from '../../services/supabaseClient';
 
@@ -16,12 +16,14 @@ interface Step4Props {
   setSelectedVoiceId: (id: string | null) => void;
   voiceSettings: VoiceSettingsValues;
   setVoiceSettings: (settings: VoiceSettingsValues) => void;
+  allVoiceSettings: AllVoiceSettings;
+  updateAllVoiceSettings: (settings: AllVoiceSettings) => void;
   model: ElevenLabsModel | undefined;
   onNext: () => void;
   onBack: () => void;
 }
 
-export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices, setSavedVoices, selectedVoiceId, setSelectedVoiceId, voiceSettings, setVoiceSettings, model, onNext, onBack }) => {
+export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices, setSavedVoices, selectedVoiceId, setSelectedVoiceId, voiceSettings, setVoiceSettings, allVoiceSettings, updateAllVoiceSettings, model, onNext, onBack }) => {
   const [newVoiceId, setNewVoiceId] = useState('');
   const [modelVoiceSettings, setModelVoiceSettings] = useState<VoiceSetting[]>([]);
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
@@ -140,22 +142,12 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
             throw upsertError;
         }
         
-        // Step 2: Add the voice ID to the user's personal list in user_preferences.
-        const { data: prefs, error: prefsError } = await supabase
-            .from('user_preferences')
-            .select('saved_voice_ids')
-            .eq('user_id', userId)
-            .single();
-
-        if (prefsError && prefsError.code !== 'PGRST116') throw prefsError;
-
-        const currentIds = (prefs?.saved_voice_ids as string[] | null) || [];
+        // Step 2: Add the voice ID to the user's personal list in user_preferences.voice_settings
+        const currentIds = (allVoiceSettings._saved_voices as string[] | null) || [];
         if (!currentIds.includes(voiceDetails.id)) {
-            const newIds = [...currentIds, voiceDetails.id];
-            const { error: updatePrefsError } = await supabase
-                .from('user_preferences')
-                .upsert({ user_id: userId, saved_voice_ids: newIds });
-            if (updatePrefsError) throw updatePrefsError;
+          const newIds = [...currentIds, voiceDetails.id];
+          const newAllSettings = { ...allVoiceSettings, _saved_voices: newIds };
+          updateAllVoiceSettings(newAllSettings);
         }
 
         // Step 3: Update local state for immediate UI feedback.
@@ -176,32 +168,15 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
     }
   };
   
-  const handleRemoveVoice = async (idToRemove: string) => {
-    if (!supabase || !userId) return;
-    try {
-      const { data: prefs, error: prefsError } = await supabase
-        .from('user_preferences')
-        .select('saved_voice_ids')
-        .eq('user_id', userId)
-        .single();
-      
-      if (prefsError && prefsError.code !== 'PGRST116') throw prefsError;
+  const handleRemoveVoice = (idToRemove: string) => {
+    const currentIds = (allVoiceSettings._saved_voices as string[] | null) || [];
+    const newIds = currentIds.filter((id: string) => id !== idToRemove);
+    const newAllSettings = { ...allVoiceSettings, _saved_voices: newIds };
+    updateAllVoiceSettings(newAllSettings);
 
-      const currentIds = (prefs?.saved_voice_ids as string[] | null) || [];
-      const newIds = currentIds.filter((id: string) => id !== idToRemove);
-
-      const { error: updateError } = await supabase
-        .from('user_preferences')
-        .upsert({ user_id: userId, saved_voice_ids: newIds });
-      
-      if (updateError) throw updateError;
-      
-      setSavedVoices(prev => prev.filter(v => v.id !== idToRemove));
-      if (selectedVoiceId === idToRemove) {
-        setSelectedVoiceId(null);
-      }
-    } catch(err) {
-      handleError(err);
+    setSavedVoices(prev => prev.filter(v => v.id !== idToRemove));
+    if (selectedVoiceId === idToRemove) {
+      setSelectedVoiceId(null);
     }
   };
   

@@ -52,9 +52,12 @@ export type VoiceSettingsValues = {
   [key: string]: number | string;
 };
 
-// New type to store voice settings for all models
+// FIX: Correct the type to allow both an index signature for model settings and a specific property `_saved_voices`.
+// The previous type caused a conflict because `_saved_voices` (string[]) was not assignable to `VoiceSettingsValues`.
+// This new type ensures all properties are compatible.
 export type AllVoiceSettings = {
-  [modelId: string]: VoiceSettingsValues;
+  _saved_voices?: string[];
+  [key: string]: VoiceSettingsValues | string[] | undefined;
 };
 
 export interface GenerationProgress {

@@ -128,9 +128,12 @@ const MainApp: React.FC<MainAppProps> = ({ userId }) => {
 
   const selectedModel = useMemo(() => models.find(m => m.model_id === selectedModelId), [models, selectedModelId]);
 
+  // FIX: With the updated AllVoiceSettings type, we need to cast the settings for a model
+  // to ensure it's not treated as a string array (_saved_voices).
+  // This is safe because selectedModelId is always a model ID from the API.
   const currentVoiceSettings = useMemo(() => {
     if (!selectedModelId) return {};
-    return allVoiceSettings[selectedModelId] || {};
+    return (allVoiceSettings[selectedModelId] as VoiceSettingsValues) || {};
   }, [allVoiceSettings, selectedModelId]);
 
   const fetchHistory = useCallback(async () => {
@@ -191,9 +194,11 @@ const MainApp: React.FC<MainAppProps> = ({ userId }) => {
         setParagraphsPerChunk(prefs.paragraphs_per_chunk || 2);
         setSelectedModelId(prefs.selected_model_id);
         setSelectedVoiceId(prefs.selected_voice_id);
-        setAllVoiceSettings(prefs.voice_settings || {});
         
-        const savedVoiceIds = (prefs.saved_voice_ids as string[] | null) || [];
+        const allSettings = prefs.voice_settings || {};
+        setAllVoiceSettings(allSettings);
+        
+        const savedVoiceIds = (allSettings._saved_voices as string[] | null) || [];
         if (savedVoiceIds.length > 0) {
             const { data: voices, error: voicesError } = await supabase
               .from('voices')
@@ -209,7 +214,8 @@ const MainApp: React.FC<MainAppProps> = ({ userId }) => {
               const mappedVoices = savedVoiceIds
                 .map(id => voicesById.get(id))
                 .filter((v): v is NonNullable<typeof v> => v != null)
-                .map(v => ({ id: v.voice_id, name: v.name, previewUrl: v.preview_url ?? undefined }));
+                // FIX: Explicitly type `v` as `any` to resolve properties from the untyped Supabase response, which prevents errors like "Property 'voice_id' does not exist on type '{}'".
+                .map((v: any) => ({ id: v.voice_id, name: v.name, previewUrl: v.preview_url ?? undefined }));
               setSavedVoices(mappedVoices);
             }
         } else {
@@ -255,6 +261,11 @@ const MainApp: React.FC<MainAppProps> = ({ userId }) => {
           setError(`Failed to save settings: ${dbError.message}`);
       }
   }, [userId]);
+  
+  const updateAllVoiceSettings = useCallback((newAllSettings: AllVoiceSettings) => {
+    setAllVoiceSettings(newAllSettings);
+    updatePreference({ voice_settings: newAllSettings });
+  }, [updatePreference]);
 
   const handleSettingsUpdate = useCallback((newSettingsForCurrentModel: VoiceSettingsValues) => {
     if (!selectedModelId) return;
@@ -418,7 +429,7 @@ const MainApp: React.FC<MainAppProps> = ({ userId }) => {
       case AppStep.ModelSelection:
         return <Step3_ModelSelection models={models} selectedModelId={selectedModelId} setSelectedModelId={(id) => { setSelectedModelId(id); updatePreference({ selected_model_id: id }); }} onNext={handleNext} onBack={handleBack} isLoading={isModelsLoading} />;
       case AppStep.VoiceSelection:
-        return <Step4_VoiceSelection userId={userId} savedVoices={savedVoices} setSavedVoices={setSavedVoices} selectedVoiceId={selectedVoiceId} setSelectedVoiceId={(id) => { setSelectedVoiceId(id); updatePreference({ selected_voice_id: id }); }} voiceSettings={currentVoiceSettings} setVoiceSettings={handleSettingsUpdate} model={selectedModel} onNext={handleStartGeneration} onBack={handleBack} />;
+        return <Step4_VoiceSelection userId={userId} savedVoices={savedVoices} setSavedVoices={setSavedVoices} selectedVoiceId={selectedVoiceId} setSelectedVoiceId={(id) => { setSelectedVoiceId(id); updatePreference({ selected_voice_id: id }); }} voiceSettings={currentVoiceSettings} setVoiceSettings={handleSettingsUpdate} allVoiceSettings={allVoiceSettings} updateAllVoiceSettings={updateAllVoiceSettings} model={selectedModel} onNext={handleStartGeneration} onBack={handleBack} />;
       case AppStep.Generation:
         return <Step5_Generation progress={generationProgress} onComplete={() => setCurrentStep(AppStep.Output)} />;
       case AppStep.Output:
