@@ -111,56 +111,63 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
     try {
         const voiceDetails = await getVoice(newVoiceId.trim());
         
-        // Attempt to save with the preview URL first. This supports newer database schemas.
-        const { error: dbError } = await supabase
-          .from('voices')
-          .insert({ 
+        // Step 1: Ensure voice exists in the global 'voices' table.
+        // We use upsert with ignoreDuplicates to add it if it's not there.
+        // This avoids the unique constraint violation.
+        const upsertPayload: { [key: string]: any } = { 
             voice_id: voiceDetails.id, 
             name: voiceDetails.name, 
-            user_id: userId,
+            user_id: userId, // Will only be set for the first user adding this voice
             preview_url: voiceDetails.previewUrl
-          });
+        };
 
-        // Check if the error is specifically about the missing 'preview_url' column.
-        const isMissingColumnError = dbError && dbError.message.includes('preview_url') && 
-                                     (dbError.message.includes('does not exist') || 
-                                      dbError.message.includes('Could not find'));
+        const { error: upsertError } = await supabase
+            .from('voices')
+            .upsert(upsertPayload, { onConflict: 'voice_id', ignoreDuplicates: true });
 
+        const isMissingColumnError = upsertError && upsertError.message.includes('preview_url') && 
+                                     (upsertError.message.includes('does not exist') || 
+                                      upsertError.message.includes('Could not find'));
+        
         if (isMissingColumnError) {
             console.warn("Database schema mismatch: 'preview_url' column not found. Retrying without it.");
-            // If the insert failed due to the missing column, retry without it for backward compatibility.
+            delete upsertPayload.preview_url;
             const { error: retryError } = await supabase
               .from('voices')
-              .insert({ 
-                voice_id: voiceDetails.id, 
-                name: voiceDetails.name, 
-                user_id: userId,
-              });
-            
-            if (retryError) {
-                // If the fallback also fails, throw that error.
-                throw retryError; 
-            }
-            // On successful retry, update state but without the previewUrl.
-            setSavedVoices(prev => [...prev, { ...voiceDetails, previewUrl: undefined }]);
-        } else if (dbError) {
-            // It was a different, unexpected database error.
-            throw dbError;
-        } else {
-            // The initial insert was successful.
-            setSavedVoices(prev => [...prev, voiceDetails]);
+              .upsert(upsertPayload, { onConflict: 'voice_id', ignoreDuplicates: true });
+            if (retryError) throw retryError;
+        } else if (upsertError) {
+            throw upsertError;
         }
         
+        // Step 2: Add the voice ID to the user's personal list in user_preferences.
+        const { data: prefs, error: prefsError } = await supabase
+            .from('user_preferences')
+            .select('saved_voice_ids')
+            .eq('user_id', userId)
+            .single();
+
+        if (prefsError && prefsError.code !== 'PGRST116') throw prefsError;
+
+        const currentIds = (prefs?.saved_voice_ids as string[] | null) || [];
+        if (!currentIds.includes(voiceDetails.id)) {
+            const newIds = [...currentIds, voiceDetails.id];
+            const { error: updatePrefsError } = await supabase
+                .from('user_preferences')
+                .upsert({ user_id: userId, saved_voice_ids: newIds });
+            if (updatePrefsError) throw updatePrefsError;
+        }
+
+        // Step 3: Update local state for immediate UI feedback.
+        setSavedVoices(prev => [...prev, voiceDetails]);
         setSelectedVoiceId(voiceDetails.id);
         setNewVoiceId('');
 
     } catch (err) {
         let errorMessage = 'Failed to find or save voice. Please check the Voice ID.';
-        // This logic handles API errors from getVoice() and DB errors from insert().
         if (err instanceof Error) {
             errorMessage = err.message;
         } else if (err && typeof err === 'object' && 'message' in err) {
-            // Handles Supabase's PostgrestError object
             errorMessage = (err as { message: string }).message;
         }
         setAddVoiceError(errorMessage);
@@ -170,12 +177,26 @@ export const Step4_VoiceSelection: React.FC<Step4Props> = ({ userId, savedVoices
   };
   
   const handleRemoveVoice = async (idToRemove: string) => {
-    if (!supabase) return;
+    if (!supabase || !userId) return;
     try {
-      const { error: dbError } = await supabase.from('voices').delete().eq('voice_id', idToRemove).eq('user_id', userId);
-      if (dbError) throw dbError;
+      const { data: prefs, error: prefsError } = await supabase
+        .from('user_preferences')
+        .select('saved_voice_ids')
+        .eq('user_id', userId)
+        .single();
       
-      setSavedVoices(savedVoices.filter(v => v.id !== idToRemove));
+      if (prefsError && prefsError.code !== 'PGRST116') throw prefsError;
+
+      const currentIds = (prefs?.saved_voice_ids as string[] | null) || [];
+      const newIds = currentIds.filter((id: string) => id !== idToRemove);
+
+      const { error: updateError } = await supabase
+        .from('user_preferences')
+        .upsert({ user_id: userId, saved_voice_ids: newIds });
+      
+      if (updateError) throw updateError;
+      
+      setSavedVoices(prev => prev.filter(v => v.id !== idToRemove));
       if (selectedVoiceId === idToRemove) {
         setSelectedVoiceId(null);
       }

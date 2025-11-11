@@ -176,7 +176,7 @@ const MainApp: React.FC<MainAppProps> = ({ userId }) => {
 
   useEffect(() => {
     const fetchInitialData = async () => {
-      if (!userId) return;
+      if (!userId || !supabase) return;
       
       const { data: prefs, error: prefsError } = await supabase
         .from('user_preferences')
@@ -192,19 +192,29 @@ const MainApp: React.FC<MainAppProps> = ({ userId }) => {
         setSelectedModelId(prefs.selected_model_id);
         setSelectedVoiceId(prefs.selected_voice_id);
         setAllVoiceSettings(prefs.voice_settings || {});
-      }
-
-      const { data: voices, error: voicesError } = await supabase
-        .from('voices')
-        .select('*')
-        .eq('user_id', userId);
-
-      if (voicesError && !error) { 
-        console.error('Error fetching voices:', voicesError);
-        setError('Could not load saved voices from the database.');
-      } else if (voices) {
-        const mappedVoices = voices.map(v => ({ id: v.voice_id, name: v.name, previewUrl: v.preview_url ?? undefined }));
-        setSavedVoices(mappedVoices);
+        
+        const savedVoiceIds = (prefs.saved_voice_ids as string[] | null) || [];
+        if (savedVoiceIds.length > 0) {
+            const { data: voices, error: voicesError } = await supabase
+              .from('voices')
+              .select('*')
+              .in('voice_id', savedVoiceIds);
+            
+            if (voicesError && !error) {
+              console.error('Error fetching saved voices:', voicesError);
+              setError('Could not load saved voices from the database.');
+            } else if (voices) {
+              // FIX: Explicitly type `v` as `any` to resolve properties from the untyped Supabase response.
+              const voicesById = new Map(voices.map((v: any) => [v.voice_id, v]));
+              const mappedVoices = savedVoiceIds
+                .map(id => voicesById.get(id))
+                .filter((v): v is NonNullable<typeof v> => v != null)
+                .map(v => ({ id: v.voice_id, name: v.name, previewUrl: v.preview_url ?? undefined }));
+              setSavedVoices(mappedVoices);
+            }
+        } else {
+            setSavedVoices([]);
+        }
       }
       
       await fetchHistory();
