@@ -30,6 +30,43 @@ export const Step5_Generation: React.FC<Step5Props> = ({ progress, onComplete })
         }
     }, [progress, onComplete]);
 
+    const getStatusInfo = (p: GenerationProgress) => {
+        switch (p.status) {
+            case 'processing':
+                return {
+                    text: `${p.completedChunks} / ${p.totalChunks} chunks`,
+                    percentage: p.totalChunks > 0 ? (p.completedChunks / p.totalChunks) * 90 : 0,
+                    className: 'text-cyan-600 dark:text-cyan-400'
+                };
+            case 'stitching':
+                return {
+                    text: 'Stitching audio...',
+                    percentage: 95,
+                    className: 'text-cyan-600 dark:text-cyan-400'
+                };
+            case 'uploading':
+                return {
+                    text: 'Saving to cloud...',
+                    percentage: 98,
+                    className: 'text-cyan-600 dark:text-cyan-400'
+                };
+            case 'completed':
+                return {
+                    text: 'Completed',
+                    percentage: 100,
+                    className: 'text-green-500 dark:text-green-400'
+                };
+            case 'failed':
+                return {
+                    text: 'Failed',
+                    percentage: p.totalChunks > 0 ? (p.completedChunks / p.totalChunks) * 90 : 0,
+                    className: 'text-red-500 dark:text-red-400'
+                };
+            default:
+                return { text: '', percentage: 0, className: '' };
+        }
+    };
+
     return (
         <div className="w-full max-w-2xl text-center">
             <h2 className="text-3xl font-bold mb-4">Generating Voiceovers...</h2>
@@ -37,14 +74,12 @@ export const Step5_Generation: React.FC<Step5Props> = ({ progress, onComplete })
 
             <div className="space-y-6">
                 {progress.map(p => {
-                    const percentage = p.totalChunks > 0 ? (p.completedChunks / p.totalChunks) * 100 : 0;
+                    const { text, percentage, className } = getStatusInfo(p);
                     return (
                         <div key={p.scriptId} className="bg-black/5 dark:bg-white/5 p-4 rounded-lg">
                             <div className="flex justify-between items-center mb-2">
                                 <span className="font-medium truncate pr-4">{p.scriptName}</span>
-                                {p.status === 'processing' && <span className="text-sm text-cyan-600 dark:text-cyan-400">{p.completedChunks} / {p.totalChunks} chunks</span>}
-                                {p.status === 'completed' && <span className="text-sm text-green-500 dark:text-green-400">Completed</span>}
-                                {p.status === 'failed' && <span className="text-sm text-red-500 dark:text-red-400">Failed</span>}
+                                <span className={`text-sm ${className}`}>{text}</span>
                             </div>
                             <ProgressBar value={percentage} />
                         </div>

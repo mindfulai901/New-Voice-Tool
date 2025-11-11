@@ -65,7 +65,7 @@ export interface GenerationProgress {
   scriptName: string;
   totalChunks: number;
   completedChunks: number;
-  status: 'processing' | 'completed' | 'failed';
+  status: 'processing' | 'stitching' | 'uploading' | 'completed' | 'failed';
 }
 
 export interface FinalAudio {

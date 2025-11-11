@@ -381,9 +381,11 @@ const MainApp: React.FC<MainAppProps> = ({ userId }) => {
       
       if (!generationFailed && allAudioBlobs.length === chunks.length) {
         try {
+            setGenerationProgress(prev => prev.map(p => p.scriptId === script.id ? { ...p, status: 'stitching' } : p));
             const stitchedBlob = new Blob(allAudioBlobs, { type: 'audio/mpeg' });
             const filePath = `${userId}/${script.id}_${Date.now()}.mp3`;
 
+            setGenerationProgress(prev => prev.map(p => p.scriptId === script.id ? { ...p, status: 'uploading' } : p));
             const { data: uploadData, error: uploadError } = await supabase.storage.from('audio_files').upload(filePath, stitchedBlob);
             if (uploadError) throw uploadError;
 
